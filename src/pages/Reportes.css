@@ -1,0 +1,217 @@
+/**
+ * Reportes.css
+ * Estilos del modulo de reportes y estadisticas.
+ * Incluye KPIs, grafico de barras, productos top y meta de ventas.
+ */
+
+/* ============================
+   KPIs DEL REPORTE
+   ============================ */
+.report-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.report-kpi {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all var(--transition);
+}
+
+.report-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.report-kpi-icon {
+  color: var(--accent);
+  font-size: 28px;
+}
+
+.report-kpi-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.report-kpi-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ============================
+   TOOLBAR DE REPORTES
+   ============================ */
+.reportes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.reportes-toolbar .btn-outline-accent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reportes-toolbar .material-icons {
+  font-size: 18px;
+}
+
+/* ============================
+   CONTENIDO PRINCIPAL
+   ============================ */
+.reportes-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 20px;
+}
+
+/* ============================
+   GRAFICO DE BARRAS
+   ============================ */
+.bar-chart {
+  width: 100%;
+  height: auto;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 24px;
+  margin-top: 16px;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* ============================
+   SIDEBAR DE REPORTES
+   ============================ */
+.reportes-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Productos mas vendidos */
+.top-products {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.top-product-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: border-color var(--transition);
+}
+
+.top-product-item:hover {
+  border-color: var(--accent);
+}
+
+.product-rank {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--accent);
+  font-size: 1rem;
+  min-width: 30px;
+}
+
+.product-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-sold {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Meta de ventas */
+.sales-goal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.goal-progress-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.goal-percent {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.goal-target {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.goal-remaining {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ============================
+   RESPONSIVE
+   ============================ */
+@media (max-width: 1024px) {
+  .report-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .reportes-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .report-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reportes-toolbar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+}

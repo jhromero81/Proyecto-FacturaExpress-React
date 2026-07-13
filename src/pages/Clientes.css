@@ -1,0 +1,147 @@
+/**
+ * Clientes.css
+ * Estilos del modulo de directorio de clientes.
+ * Incluye toolbar, grid de tarjetas de clientes y modal de creacion.
+ */
+
+/* ============================
+   TOOLBAR DE CLIENTES
+   ============================ */
+.clientes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.clientes-toolbar .btn-teal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.clientes-toolbar .material-icons {
+  font-size: 18px;
+}
+
+/* ============================
+   GRID DE TARJETAS DE CLIENTES
+   ============================ */
+.clientes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.client-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all var(--transition);
+}
+
+.client-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(26, 188, 156, 0.1);
+  transform: translateY(-3px);
+}
+
+.client-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.client-avatar {
+  font-size: 36px;
+  color: var(--accent);
+}
+
+.client-id {
+  font-size: 0.75rem;
+  background: rgba(26, 188, 156, 0.1);
+  color: var(--accent);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.client-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.client-email {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.client-card-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.client-action-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--accent);
+  font-weight: 600;
+  transition: color var(--transition);
+}
+
+.client-action-link:hover {
+  color: var(--accent-dk);
+}
+
+.client-action-link .material-icons {
+  font-size: 16px;
+}
+
+/* Boton cancelar del modal */
+.btn-cancel-compact {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+
+.btn-cancel-compact:hover {
+  border-color: var(--text-dark);
+  color: var(--text-dark);
+}
+
+/* ============================
+   RESPONSIVE
+   ============================ */
+@media (max-width: 1024px) {
+  .clientes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .clientes-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clientes-grid {
+    grid-template-columns: 1fr;
+  }
+}

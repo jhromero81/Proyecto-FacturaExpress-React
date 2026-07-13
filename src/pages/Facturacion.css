@@ -1,0 +1,165 @@
+/**
+ * Facturacion.css
+ * Estilos del modulo de facturacion electronica.
+ * Incluye toolbar, filtros, tabla y acciones de documentos.
+ */
+
+/* ============================
+   TOOLBAR DE FACTURACION
+   ============================ */
+.facturacion-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0 14px;
+  min-width: 280px;
+  transition: border-color var(--transition);
+}
+
+.search-wrapper:focus-within {
+  border-color: var(--accent);
+}
+
+.search-wrapper .material-icons {
+  color: var(--text-muted);
+  margin-right: 8px;
+}
+
+.search-wrapper input {
+  border: none;
+  outline: none;
+  padding: 10px 0;
+  font-size: 0.88rem;
+  font-family: var(--font-body);
+  color: var(--text-dark);
+  background: transparent;
+  width: 100%;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-group {
+  display: flex;
+  gap: 6px;
+}
+
+.tab-btn {
+  padding: 6px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+
+.tab-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tab-btn.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ============================
+   TABLA DE FACTURAS
+   ============================ */
+.facturacion-page .content-card {
+  overflow-x: auto;
+}
+
+.empty-table {
+  text-align: center;
+  padding: 40px 20px !important;
+  color: var(--text-muted);
+}
+
+.empty-table .material-icons {
+  font-size: 48px;
+  opacity: 0.3;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* Acciones de documentos */
+.doc-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.doc-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.doc-btn .material-icons {
+  font-size: 18px;
+}
+
+.doc-btn.pdf {
+  color: var(--danger);
+}
+
+.doc-btn.pdf:hover {
+  background-color: rgba(231, 76, 60, 0.1);
+  border-color: var(--danger);
+}
+
+.doc-btn.xml {
+  color: var(--info);
+}
+
+.doc-btn.xml:hover {
+  background-color: rgba(52, 152, 219, 0.1);
+  border-color: var(--info);
+}
+
+/* ============================
+   RESPONSIVE
+   ============================ */
+@media (max-width: 768px) {
+  .facturacion-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-wrapper {
+    min-width: auto;
+  }
+
+  .toolbar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    flex-wrap: wrap;
+  }
+}
