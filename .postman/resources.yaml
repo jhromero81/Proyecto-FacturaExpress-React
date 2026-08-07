@@ -1,0 +1,13 @@
+# Use this workspace to collaborate
+workspace:
+  id: 94dcda9a-e782-4851-9169-4636367f22d6
+
+cloudResources:
+  collections:
+    ../postman/collections/FacturaExpress API (Express): e30cfc79-f068-4f3c-819b-47e939d75244
+
+# All resources in the `postman/` folder are automatically registered in Local View.
+# Point to additional files outside the `postman/` folder to register them individually. Example:
+#localResources:
+#  collections:
+#    - ../tests/E2E Test Collection/

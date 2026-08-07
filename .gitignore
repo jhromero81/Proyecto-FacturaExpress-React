@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+
+# Build de produccion
+build/
+
+# Variables de entorno (contienen credenciales)
+.env
+.env.local
+.env.*.local
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Registros y cobertura
+*.log
+coverage/
