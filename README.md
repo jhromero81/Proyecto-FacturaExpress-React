@@ -1,70 +1,144 @@
-# Getting Started with Create React App
+# FacturaExpress
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Sistema de facturación electrónica desarrollado como proyecto formativo SENA
+(**Evidencia GA7-220501096-AA5-EV03**). Consta de dos partes:
 
-## Available Scripts
+- **Frontend** (React): interfaz de usuario para clientes, productos, ventas,
+  facturación, reportes, configuración y administración.
+- **Backend** (API REST): servicios web que conectan el sistema con la base de
+  datos MySQL.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## Tecnologías y stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+| Componente           | Tecnología                             |
+| -------------------- | -------------------------------------- |
+| Frontend             | React 19 + React Router 7 + CSS        |
+| Backend (API)        | Node.js + Express.js                   |
+| Base de datos        | MySQL 8 (tablas relacionales)          |
+| Autenticación        | JWT (jsonwebtoken) + bcryptjs          |
+| Variables de entorno | dotenv                                 |
+| Control de versiones | Git + GitHub                           |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## Estructura del proyecto
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```
+Proyecto-FacturaExpress-React/
+├── backend/            # API REST (Node.js + Express + MySQL)
+│   ├── README.md       # Documentación técnica de la API (endpoints, parámetros)
+│   ├── server.js       # Punto de entrada del servidor
+│   ├── routes/         # Definición de rutas por módulo
+│   ├── controllers/    # Lógica de negocio
+│   ├── config/         # Conexión a MySQL y configuración JWT
+│   ├── middleware/     # Autenticación y manejo de errores
+│   ├── db/             # Esquema SQL y datos de prueba
+│   └── scripts/        # Creación de BD y datos semilla
+├── postman/            # Colección de pruebas de la API
+└── src/                # Frontend React
+    ├── pages/          # Pantallas (Login, Ventas, Facturación, etc.)
+    ├── components/     # Componentes reutilizables
+    ├── services/       # Consumo de la API
+    └── context/        # Estado global (autenticación)
+```
 
-### `npm run build`
+> La documentación completa de la API (endpoints, métodos, parámetros y
+> respuestas JSON) está en **`backend/README.md`**.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Requisitos previos
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Node.js ≥ 18
+- MySQL 8 corriendo localmente
+- Git
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Instalación y puesta en marcha
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Paso 1 — Configurar la base de datos y la API
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+cd backend
+cp .env.example .env   # Windows: copy .env.example .env
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Edite `.env` con las credenciales de su MySQL local (`DB_USER`, `DB_PASSWORD`).
 
-## Learn More
+Instale las dependencias y cree la base de datos con datos de ejemplo:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+npm install
+npm run db:setup       # Crea la BD, las tablas y los datos semilla
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Inicie la API (queda en `http://localhost:4000`):
 
-### Code Splitting
+```bash
+npm start              # Producción
+npm run dev            # Desarrollo (nodemon)
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Verifique con `http://localhost:4000/api/health`.
 
-### Analyzing the Bundle Size
+### Paso 2 — Iniciar el frontend
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+En otra terminal, desde la raíz del proyecto:
 
-### Making a Progressive Web App
+```bash
+npm install
+npm start              # Abre http://localhost:3000
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+---
 
-### Advanced Configuration
+## Credenciales de acceso (usuarios de prueba)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+| Rol       | NIT             | Contraseña      | Permisos                        |
+| --------- | --------------- | --------------- | ------------------------------- |
+| Admin     | `900.123.456-7` | `admin123`      | Acceso total                    |
+| Vendedor  | `80.987.654-3`  | `vendedor123`   | Ventas y facturación            |
+| Contador  | `70.555.444-2`  | `contador123`   | Reportes y facturas emitidas    |
 
-### Deployment
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Scripts útiles (backend)
 
-### `npm run build` fails to minify
+| Comando           | Descripción                                    |
+| ----------------- | ---------------------------------------------- |
+| `npm run db:setup`| Crea la base de datos, tablas y datos semilla. |
+| `npm run db:seed` | Puebla datos de ejemplo (idempotente).         |
+| `npm run db:migrate` | Aplica migraciones de esquema.             |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+
+## Pruebas de la API
+
+En `postman/` se incluye una colección de Postman con todas las peticiones de la
+API organizadas por módulo (autenticación, clientes, productos, facturas,
+reportes, etc.). También existe `postman/test-api.ps1` para probar vía consola.
+
+Ejemplo rápido con cURL:
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:4000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"nit":"900.123.456-7","password":"admin123"}' \
+  | node -pe "JSON.parse(require('fs').readFileSync(0)).token")
+
+curl -s http://localhost:4000/api/clientes -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## Control de versiones
+
+```bash
+git status
+git add .
+git commit -m "mensaje descriptivo"
+git push -u origin master
+```
