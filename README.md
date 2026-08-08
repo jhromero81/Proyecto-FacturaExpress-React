@@ -53,13 +53,6 @@ Proyecto-FacturaExpress-React/
     ├── services/       # Consumo de la API
     └── context/        # Estado global (autenticación)
 ```
-
-> La documentación completa de la API (endpoints, métodos, parámetros y
-> respuestas JSON) está en **`backend/README.md`** y el listado de endpoints
-> para informes en **`ENDPOINTS.txt`**.
-
----
-
 ## Requisitos previos
 
 - Node.js ≥ 18 (≥ 20.19 para el frontend con Vite 7)
@@ -68,7 +61,7 @@ Proyecto-FacturaExpress-React/
 
 ---
 
-## Opción A — Con Docker (recomendado)
+## Opción A — Con Docker
 
 Cree primero un archivo `.env` en la raíz con el secreto que firmará los
 tokens JWT (la API **no arranca en producción sin él**):
@@ -98,7 +91,7 @@ Detener los contenedores:
 docker compose down
 ```
 
-## Opción B — Sin Docker (instalación manual)
+## Opción B — Sin Docker
 
 ### Paso 1 — Configurar la base de datos y la API
 
@@ -212,12 +205,3 @@ Medidas implementadas en la API (ver `backend/README.md` → *Seguridad*):
 > activa con `NODE_ENV=production` (configurado en `docker-compose.yml`).
 
 ---
-
-## Control de versiones
-
-```bash
-git status
-git add .
-git commit -m "mensaje descriptivo"
-git push -u origin master
-```
