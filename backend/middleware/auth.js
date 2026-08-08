@@ -1,11 +1,27 @@
 /**
  * middleware/auth.js
  * Middleware de autenticacion mediante tokens JWT.
- * Protege las rutas de la API: exige que el cliente envie un
- * token valido en el encabezado "Authorization: Bearer <token>".
+ * Protege las rutas de la API: acepta el token en la cookie
+ * httpOnly "token" (usada por el frontend) o en el encabezado
+ * "Authorization: Bearer <token>" (usado por clientes externos).
  */
 
 const { verifyToken } = require('../config/jwt');
+
+/**
+ * Extrae el token JWT de la peticion.
+ * Prioriza el encabezado Authorization y usa la cookie httpOnly
+ * como respaldo (mecanismo principal del frontend).
+ * @param {object} req - Objeto de peticion de Express.
+ * @returns {string|null} Token JWT o null si no existe.
+ */
+function getToken(req) {
+  const authHeader = req.headers.authorization || '';
+  if (authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+  return req.cookies?.token || null;
+}
 
 /**
  * Middleware de autenticacion.
@@ -16,11 +32,7 @@ const { verifyToken } = require('../config/jwt');
  * @param {function} next - Funcion que continua al siguiente middleware.
  */
 function authenticate(req, res, next) {
-  // Leer el encabezado Authorization: "Bearer <token>"
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ')
-    ? authHeader.slice(7)
-    : null;
+  const token = getToken(req);
 
   if (!token) {
     return res.status(401).json({

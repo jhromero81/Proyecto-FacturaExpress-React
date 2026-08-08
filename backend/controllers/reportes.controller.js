@@ -88,7 +88,9 @@ const getKPIs = asyncHandler(async (req, res) => {
  */
 const getVentasSemanales = asyncHandler(async (req, res) => {
   const [rows] = await pool.query(
-    `SELECT DATE(fecha) AS dia, COALESCE(SUM(total), 0) AS total
+    `SELECT DATE(fecha) AS dia,
+            COUNT(*) AS facturas,
+            COALESCE(SUM(total), 0) AS total
        FROM facturas
       WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
         AND estado <> 'rechazada'
@@ -98,6 +100,7 @@ const getVentasSemanales = asyncHandler(async (req, res) => {
 
   const dias = rows.map((r) => ({
     dia: r.dia instanceof Date ? r.dia.toISOString().slice(0, 10) : String(r.dia),
+    facturas: Number(r.facturas),
     total: Number(r.total),
   }));
 
@@ -106,15 +109,19 @@ const getVentasSemanales = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/reportes/ventas-periodo?periodo=mensual
- * Comparativa de ventas del periodo actual vs anterior.
+ * Comparativa de ventas del periodo actual vs el periodo anterior
+ * (ventana previa de la misma duracion). Devuelve ambas series
+ * agrupadas por periodo para el grafico comparativo.
  * Valores de periodo: semanal, mensual, trimestral, anual.
  */
 const getVentasPeriodo = asyncHandler(async (req, res) => {
   const { periodo = 'mensual' } = req.query;
   const config = PERIODOS[periodo] || PERIODOS.mensual;
 
+  // Ventana actual: ultimos N dias hasta hoy
   const [rows] = await pool.query(
     `SELECT ${config.sql} AS periodo,
+            COUNT(*) AS facturas,
             COALESCE(SUM(total), 0) AS total
        FROM facturas
       WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
@@ -124,13 +131,42 @@ const getVentasPeriodo = asyncHandler(async (req, res) => {
     [config.dias]
   );
 
+  // Ventana anterior: los N dias previos al inicio de la actual
+  const [rowsAnterior] = await pool.query(
+    `SELECT ${config.sql} AS periodo,
+            COUNT(*) AS facturas,
+            COALESCE(SUM(total), 0) AS total
+       FROM facturas
+      WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        AND fecha < DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        AND estado <> 'rechazada'
+      GROUP BY periodo
+      ORDER BY periodo ASC`,
+    [config.dias * 2, config.dias]
+  );
+
+  const serieActual = new Map(rows.map((r) => [r.periodo, r]));
+  const serieAnterior = new Map(rowsAnterior.map((r) => [r.periodo, r]));
+
+  // Union de etiquetas de ambas ventanas, ordenadas cronologicamente
+  const etiquetas = [...new Set([...serieActual.keys(), ...serieAnterior.keys()])].sort();
+
+  const ventas = etiquetas.map((label) => {
+    const actual = serieActual.get(label);
+    const anterior = serieAnterior.get(label);
+    return {
+      periodo: label,
+      total: Number(actual?.total) || 0,
+      facturas: Number(actual?.facturas) || 0,
+      anterior: Number(anterior?.total) || 0,
+      anteriorFacturas: Number(anterior?.facturas) || 0,
+    };
+  });
+
   res.json({
     success: true,
     periodo,
-    ventas: rows.map((r) => ({
-      periodo: r.periodo,
-      total: Number(r.total),
-    })),
+    ventas,
   });
 });
 

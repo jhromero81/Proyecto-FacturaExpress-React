@@ -43,6 +43,15 @@ const Ventas = () => {
   /** Texto de busqueda de productos */
   const [searchTerm, setSearchTerm] = useState('');
 
+  /** Texto de busqueda de clientes por NIT (autocompletado) */
+  const [clientNitSearch, setClientNitSearch] = useState('');
+
+  /** Texto de busqueda de clientes por nombre (autocompletado) */
+  const [clientNameSearch, setClientNameSearch] = useState('');
+
+  /** Texto de busqueda dentro del modal de seleccion de cliente */
+  const [clientModalSearch, setClientModalSearch] = useState('');
+
   /** Referencia para limpiar timeout al desmontar */
   const timerRef = useRef(null);
 
@@ -240,6 +249,76 @@ const Ventas = () => {
   }, [searchTerm, productos]);
 
   /**
+   * Filtra clientes por NIT para el autocompletado.
+   * Solo muestra sugerencias cuando el usuario escribe.
+   */
+  const filteredClientesNit = useMemo(() => {
+    const term = clientNitSearch.trim().toLowerCase();
+    if (!term) return [];
+    return clientes.filter((c) => c.identificacion.toLowerCase().includes(term));
+  }, [clientNitSearch, clientes]);
+
+  /**
+   * Filtra clientes por nombre para el autocompletado.
+   * Solo muestra sugerencias cuando el usuario escribe.
+   */
+  const filteredClientesNombre = useMemo(() => {
+    const term = clientNameSearch.trim().toLowerCase();
+    if (!term) return [];
+    return clientes.filter((c) => c.nombre.toLowerCase().includes(term));
+  }, [clientNameSearch, clientes]);
+
+  /**
+   * Filtra clientes para el modal de seleccion.
+   * Sin texto de busqueda, muestra la lista completa.
+   */
+  const filteredModalClientes = useMemo(() => {
+    const term = clientModalSearch.trim().toLowerCase();
+    if (!term) return clientes;
+    return clientes.filter(
+      (c) =>
+        c.nombre.toLowerCase().includes(term) ||
+        c.identificacion.toLowerCase().includes(term)
+    );
+  }, [clientModalSearch, clientes]);
+
+  /**
+   * Renderiza las sugerencias de clientes para un campo de busqueda.
+   * @param {Array} lista - Clientes filtrados por el termino tecleado.
+   * @param {string} termino - Texto tecleado.
+   * @param {Function} limpiar - Setter del termino (se vacia al elegir).
+   */
+  const renderClientSuggestions = (lista, termino, limpiar) => {
+    if (!termino.trim()) return null;
+    if (lista.length === 0) {
+      return (
+        <div className="search-suggestions">
+          <p className="suggestion-name" style={{ padding: '10px 14px' }}>
+            Sin resultados para &quot;{termino}&quot;
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="search-suggestions">
+        {lista.map((c) => (
+          <button
+            key={c.id}
+            className="suggestion-item"
+            onClick={() => {
+              selectClient(c);
+              limpiar('');
+            }}
+          >
+            <span className="suggestion-name">{c.nombre}</span>
+            <span className="suggestion-price font-mono">{c.identificacion}</span>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  /**
    * Selecciona un cliente para la venta actual.
    */
   const selectClient = useCallback((c) => {
@@ -284,27 +363,73 @@ const Ventas = () => {
             </button>
           </div>
 
-          {/* Informacion del cliente seleccionado */}
-          <div className="ventas-client-info">
-            <div className="form-group">
-              <label>Cliente (NIT)</label>
-              <input
-                type="text"
-                value={cliente?.identificacion || ''}
-                readOnly
-                placeholder="Seleccione un cliente"
-              />
-            </div>
-            <div className="form-group">
-              <label>Nombre</label>
-              <input
-                type="text"
-                value={cliente?.nombre || ''}
-                readOnly
-                placeholder="Nombre del cliente"
-              />
+          {/* Busqueda de cliente: campos separados de NIT y nombre */}
+          <div className="ventas-client-search">
+            <div className="ventas-client-info">
+              <div className="form-group">
+                <label>NIT del cliente</label>
+                <div className="search-input-wrapper">
+                  <span className="material-icons">badge</span>
+                  <input
+                    type="text"
+                    placeholder="Digite el NIT..."
+                    value={clientNitSearch}
+                    onChange={(e) => setClientNitSearch(e.target.value)}
+                  />
+                </div>
+                {renderClientSuggestions(
+                  filteredClientesNit,
+                  clientNitSearch,
+                  setClientNitSearch
+                )}
+              </div>
+              <div className="form-group">
+                <label>Nombre del cliente</label>
+                <div className="search-input-wrapper">
+                  <span className="material-icons">person_search</span>
+                  <input
+                    type="text"
+                    placeholder="Digite el nombre..."
+                    value={clientNameSearch}
+                    onChange={(e) => setClientNameSearch(e.target.value)}
+                  />
+                </div>
+                {renderClientSuggestions(
+                  filteredClientesNombre,
+                  clientNameSearch,
+                  setClientNameSearch
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Cliente seleccionado para la venta */}
+          {cliente ? (
+            <div className="ventas-client-info">
+              <div className="form-group">
+                <label>Cliente (NIT)</label>
+                <input
+                  type="text"
+                  value={cliente.identificacion}
+                  readOnly
+                  placeholder="NIT del cliente"
+                />
+              </div>
+              <div className="form-group">
+                <label>Nombre</label>
+                <input
+                  type="text"
+                  value={cliente.nombre}
+                  readOnly
+                  placeholder="Nombre del cliente"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="ventas-client-info">
+              <p className="suggestion-name">No hay cliente seleccionado para la venta.</p>
+            </div>
+          )}
 
           {/* Busqueda y adicion de productos */}
           <div className="ventas-product-search">
@@ -466,20 +591,37 @@ const Ventas = () => {
               <h3>Seleccionar Cliente</h3>
             </div>
             <div className="modal-body">
+              {/* Busqueda de clientes por NIT o nombre */}
+              <div className="search-input-wrapper">
+                <span className="material-icons">search</span>
+                <input
+                  type="text"
+                  placeholder="Buscar por NIT o nombre..."
+                  value={clientModalSearch}
+                  onChange={(e) => setClientModalSearch(e.target.value)}
+                  autoFocus
+                />
+              </div>
               <div className="client-list-modal">
-                {clientes.map((c) => (
-                  <button
-                    key={c.id}
-                    className={`client-option ${cliente?.id === c.id ? 'selected' : ''}`}
-                    onClick={() => selectClient(c)}
-                  >
-                    <span className="material-icons">account_circle</span>
-                    <div className="client-option-info">
-                      <span className="client-option-name">{c.nombre}</span>
-                      <span className="client-option-id font-mono">{c.identificacion}</span>
-                    </div>
-                  </button>
-                ))}
+                {filteredModalClientes.length === 0 ? (
+                  <p className="suggestion-name" style={{ padding: '14px' }}>
+                    Sin resultados para &quot;{clientModalSearch}&quot;
+                  </p>
+                ) : (
+                  filteredModalClientes.map((c) => (
+                    <button
+                      key={c.id}
+                      className={`client-option ${cliente?.id === c.id ? 'selected' : ''}`}
+                      onClick={() => selectClient(c)}
+                    >
+                      <span className="material-icons">account_circle</span>
+                      <div className="client-option-info">
+                        <span className="client-option-name">{c.nombre}</span>
+                        <span className="client-option-id font-mono">{c.identificacion}</span>
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
             <div className="modal-footer">

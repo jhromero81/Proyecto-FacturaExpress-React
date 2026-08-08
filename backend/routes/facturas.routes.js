@@ -15,6 +15,12 @@ const {
   getFacturaCSV,
 } = require('../controllers/facturas.controller');
 const { authenticate } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+const {
+  createFacturaValidator,
+  updateEstadoFacturaValidator,
+  idValidator,
+} = require('../validators');
 
 const router = Router();
 
@@ -22,12 +28,12 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', listFacturas);
-router.post('/', createFactura);
-router.get('/:id', getFactura);
-router.get('/:id/pdf', getFacturaPDF);
-router.get('/:id/xml', getFacturaXML);
-router.get('/:id/csv', getFacturaCSV);
-router.put('/:id/estado', updateEstadoFactura);
-router.delete('/:id', deleteFactura);
+router.post('/', createFacturaValidator, validate, createFactura);
+router.get('/:id', idValidator, validate, getFactura);
+router.get('/:id/pdf', idValidator, validate, getFacturaPDF);
+router.get('/:id/xml', idValidator, validate, getFacturaXML);
+router.get('/:id/csv', idValidator, validate, getFacturaCSV);
+router.put('/:id/estado', updateEstadoFacturaValidator, validate, updateEstadoFactura);
+router.delete('/:id', idValidator, validate, deleteFactura);
 
 module.exports = router;

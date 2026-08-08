@@ -1,12 +1,14 @@
 /**
- * AuthContext.js
+ * AuthContext.jsx
  * Contexto de autenticacion y accesibilidad de la aplicacion.
  * Proporciona estado global de sesion, tema visual y preferencias de usuario.
+ * La sesion se mantiene en una cookie httpOnly del servidor (anti-XSS):
+ * el frontend no almacena el token JWT en localStorage.
  */
 
-import React, { createContext, useState, useCallback, useEffect, useMemo } from 'react';
+import React, { createContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { storageGet, storageSet, clearSession } from '../services/storageService';
-import { login as apiLogin, setAuthToken } from '../services/api';
+import { login as apiLogin, logout as apiLogout, getMe } from '../services/api';
 import { PERFILES_USUARIO } from '../utils/constants';
 
 /** Crear el contexto de autenticacion */
@@ -41,15 +43,8 @@ export const AuthProvider = ({ children }) => {
     return storageGet('login_time', null);
   });
 
-  /** Token JWT de la sesion */
-  const [token, setToken] = useState(() => {
-    return storageGet('auth_token', null);
-  });
-
-  /** Mantener el token sincronizado con el cliente HTTP */
-  useEffect(() => {
-    setAuthToken(token);
-  }, [token]);
+  /** Evita validar la sesion mas de una vez por montaje */
+  const sessionChecked = useRef(false);
 
   /** Aplicar las clases de accesibilidad al body cuando cambien las preferencias */
   useEffect(() => {
@@ -63,8 +58,39 @@ export const AuthProvider = ({ children }) => {
   }, [preferences]);
 
   /**
+   * Restaura la sesion al recargar la pagina.
+   * La cookie httpOnly conserva la sesion en el servidor; se valida
+   * con GET /auth/me y se refrescan los datos del usuario.
+   */
+  useEffect(() => {
+    if (sessionChecked.current) return;
+    sessionChecked.current = true;
+
+    const restaurarSesion = async () => {
+      try {
+        const result = await getMe();
+        const perfil = PERFILES_USUARIO[result.usuario.rol?.toUpperCase()];
+        setUser({
+          ...result.usuario,
+          rol: perfil ? perfil.nombre : result.usuario.rol,
+        });
+        setIsLoggedIn(true);
+      } catch (error) {
+        clearSession();
+        setIsLoggedIn(false);
+        setUser(null);
+        setLoginTime(null);
+      }
+    };
+
+    if (storageGet('session_active', false)) {
+      restaurarSesion();
+    }
+  }, []);
+
+  /**
    * Inicia sesion con las credenciales proporcionadas.
-   * Valida contra la API REST y almacena el token JWT.
+   * El servidor establece la cookie httpOnly de sesion.
    * @param {string} nit - NIT o usuario.
    * @param {string} password - Contrasena.
    * @returns {Promise<object>} Respuesta de la API ({ token, usuario }).
@@ -74,7 +100,7 @@ export const AuthProvider = ({ children }) => {
     const result = await apiLogin(nit, password);
 
     // Mapear el rol del backend a su nombre descriptivo
-    const perfil = PERFILES_USUARIO[result.usuario.rol];
+    const perfil = PERFILES_USUARIO[result.usuario.rol?.toUpperCase()];
     const userData = {
       ...result.usuario,
       rol: perfil ? perfil.nombre : result.usuario.rol,
@@ -85,19 +111,17 @@ export const AuthProvider = ({ children }) => {
     storageSet('session_active', true);
     storageSet('login_time', now);
     storageSet('user_data', userData);
-    storageSet('auth_token', result.token);
 
-    setToken(result.token);
     setUser(userData);
     setLoginTime(now);
     setIsLoggedIn(true);
     return result;
   }, []);
 
-  /** Cierra la sesion preservando preferencias de accesibilidad */
+  /** Cierra la sesion: invalida la cookie en el servidor y limpia el estado local */
   const logout = useCallback(() => {
+    apiLogout().catch(() => { /* la sesion local se limpia igualmente */ });
     clearSession();
-    setToken(null);
     setUser(null);
     setLoginTime(null);
     setIsLoggedIn(false);
@@ -142,7 +166,6 @@ export const AuthProvider = ({ children }) => {
   const value = useMemo(() => ({
     isLoggedIn,
     user,
-    token,
     preferences,
     loginTime,
     login,
@@ -152,7 +175,7 @@ export const AuthProvider = ({ children }) => {
     toggleHighContrast,
     setTextSize,
   }), [
-    isLoggedIn, user, token, preferences, loginTime,
+    isLoggedIn, user, preferences, loginTime,
     login, logout, updatePreferences,
     toggleDarkMode, toggleHighContrast, setTextSize,
   ]);

@@ -4,7 +4,7 @@
  * Aplica, de forma idempotente, los cambios que el seed por si
  * solo no puede aplicar sobre bases de datos ya creadas:
  *   - Nuevas columnas DIAN en la tabla facturas.
- *   - Cambio del ENUM de estado (enviado/procesando/anulada ->
+ *   - Cambio del ENUM de estado (enviado/rechazado/procesando/anulada ->
  *     pendiente/enviada/rechazada), alineado al modelo Java.
  *   - Creacion de las tablas errores_sistema, logs_auditoria,
  *     reportes y backups.

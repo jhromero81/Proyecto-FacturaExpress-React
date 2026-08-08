@@ -21,7 +21,11 @@ Desarrollar la red de comunicación que permite el intercambio de datos entre el
 | Base de datos        | MySQL 8 (tablas relacionales)               |
 | Driver de BD         | mysql2 (pool de conexiones)                 |
 | Autenticación        | JSON Web Token (jsonwebtoken)               |
+| Sesión segura        | Cookie httpOnly (cookie-parser)             |
 | Cifrado de claves    | bcryptjs                                    |
+| Cabeceras de seguridad | helmet                                    |
+| Límite de peticiones | express-rate-limit                          |
+| Validación de entrada| express-validator                           |
 | Variables de entorno | dotenv                                      |
 | CORS                 | cors (origen del frontend configurable)     |
 | Control de versiones | Git + GitHub                                |
@@ -54,8 +58,12 @@ backend/
 │   ├── configuracion.routes.js
 │   └── reportes.routes.js
 ├── middleware/
-│   ├── auth.js               # JWT + autorización por rol
-│   └── errorHandler.js       # 404, errores centrales, asyncHandler
+│   ├── auth.js               # JWT (cookie httpOnly o Bearer) + autorización por rol
+│   ├── errorHandler.js       # 404, errores centrales, asyncHandler
+│   ├── security.js           # Límites de peticiones (login y general)
+│   └── validate.js           # Verificador central de validaciones (400)
+├── validators/
+│   └── index.js              # Reglas de validación por módulo
 ├── utils/
 │   └── helpers.js            # Números de factura, IVA, mapeadores
 ├── db/
@@ -145,8 +153,12 @@ erDiagram
 
 ## 5. Análisis de endpoints
 
-Todas las rutas (excepto `POST /api/auth/login` y `GET /api/health`) exigen el token JWT
-en el encabezado:
+Todas las rutas (excepto `POST /api/auth/login`, `POST /api/auth/logout` y
+`GET /api/health`) exigen autenticación. La API acepta el token JWT de dos formas:
+
+- **Cookie httpOnly `token`** (mecanismo principal, usado por el frontend):
+  el navegador la envía automáticamente, sin que JavaScript la lea.
+- **Encabezado `Authorization`** (para clientes externos / Postman):
 
 ```
 Authorization: Bearer <token>
@@ -166,7 +178,8 @@ La estructura de respuesta es consistente:
 
 | Método | Ruta            | Protegida | Descripción                                      |
 | ------ | --------------- | --------- | ------------------------------------------------ |
-| POST   | `/api/auth/login` | No      | Valida NIT y contraseña; devuelve token JWT y usuario. |
+| POST   | `/api/auth/login` | No      | Valida NIT y contraseña; emite cookie httpOnly y devuelve el token JWT y el usuario. |
+| POST   | `/api/auth/logout` | No     | Cierra la sesión limpiando la cookie httpOnly.   |
 | GET    | `/api/auth/me`  | Sí        | Datos del usuario autenticado con el token.      |
 
 **`POST /api/auth/login`**
@@ -175,7 +188,7 @@ La estructura de respuesta es consistente:
 // Body de entrada
 { "nit": "900.123.456-7", "password": "admin123" }
 
-// Respuesta 200 OK
+// Respuesta 200 OK (además fija la cookie httpOnly "token")
 {
   "success": true,
   "message": "Inicio de sesion exitoso.",
@@ -193,6 +206,7 @@ La estructura de respuesta es consistente:
 | 401    | Credenciales incorrectas.         |
 | 403    | Usuario inactivo.                 |
 | 400    | Faltan campos obligatorios.       |
+| 429    | Demasiados intentos (5 por IP cada 15 min). |
 
 ### 5.2 Clientes — `/api/clientes`
 
@@ -452,13 +466,38 @@ curl -s http://localhost:4000/api/reportes/kpis -H "Authorization: Bearer $TOKEN
 - **Manejo centralizado de errores** con respuestas JSON consistentes (`success`/`message`).
 - **Transacciones** para operaciones de escritura múltiple (factura + items + stock).
 - **Validación de entrada** en el servidor (no se confía en los datos del cliente).
-- **Seguridad**: contraseñas cifradas con `bcryptjs`, tokens JWT con expiración, `Authorization` requerida en las rutas protegidas, CORS restringido al origen del frontend.
+- **Seguridad**: contraseñas cifradas con `bcryptjs`, tokens JWT con expiración,
+  cookie de sesión httpOnly, `Authorization` requerida en las rutas protegidas,
+  CORS restringido al origen del frontend, validación de entrada, cabeceras de
+  seguridad (helmet) y límite de peticiones.
 - **Variables de entorno** para credenciales y configuración (`.env` excluido de Git).
 - **Idempotencia del seed** y eliminación lógica para preservar el histórico fiscal.
 
 ---
 
-## 10. Registro de servicios web (resumen)
+## 10. Seguridad
+
+Medidas implementadas para proteger la API:
+
+| Medida | Detalle |
+| ------ | ------- |
+| **Cookie httpOnly** | El token JWT viaja en la cookie `token` con `HttpOnly` y `SameSite=Lax`, inmune a XSS (JavaScript no puede leerla). El frontend no almacena el token. |
+| **Cookie `Secure`** | Con `NODE_ENV=production` la cookie solo viaja por HTTPS. |
+| **Helmet** | Cabeceras HTTP de seguridad: CSP, `X-Frame-Options`, `X-Content-Type-Options`, HSTS, etc. (`server.js`). |
+| **Límite de peticiones** | Login: 5 intentos/15 min por IP (`loginLimiter`). API general: 120 peticiones/min por IP (`apiLimiter`). Responden `429`. |
+| **Validación de entrada** | `express-validator` (`validators/index.js`) valida tipos, formatos y rangos antes del controlador; responde `400` con la lista de campos (`middleware/validate.js`). |
+| **Errores sin detalles** | En producción los errores `500` devuelven *"Error interno del servidor."*; el detalle (SQL, rutas) solo se registra en consola (`middleware/errorHandler.js`). |
+| **Secreto JWT obligatorio** | Con `NODE_ENV=production` la API **no arranca** si falta `JWT_SECRET` (`config/jwt.js`), evitando tokens falsificables con un valor por defecto. |
+| **Consultas parametrizadas** | `mysql2` con `?` en todos los queries (anti-SQL injection). |
+| **Cifrado de contraseñas** | `bcryptjs` (nunca se guardan en texto plano). |
+| **CORS restringido** | Solo el origen del frontend (`CORS_ORIGIN`) puede consumir la API con credenciales. |
+
+> **Variables relevantes**: `NODE_ENV` (development/production), `JWT_SECRET`
+> (obligatorio en producción), `JWT_EXPIRES_IN`, `CORS_ORIGIN`.
+
+---
+
+## 11. Registro de servicios web (resumen)
 
 | # | Módulo         | Método | Ruta                                 | Función principal                          |
 | - | -------------- | ------ | ------------------------------------ | ------------------------------------------ |
@@ -494,7 +533,7 @@ curl -s http://localhost:4000/api/reportes/kpis -H "Authorization: Bearer $TOKEN
 
 ---
 
-## 11. Control de versiones (Git)
+## 12. Control de versiones (Git)
 
 ```bash
 # Desde la raíz del proyecto

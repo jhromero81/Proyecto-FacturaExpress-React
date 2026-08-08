@@ -10,10 +10,13 @@
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 
 const { testConnection } = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
+const { apiLimiter } = require('./middleware/security');
 
 // Rutas de cada modulo del sistema
 const authRoutes = require('./routes/auth.routes');
@@ -35,9 +38,17 @@ const PORT = Number(process.env.PORT || 4000);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
 // Middlewares globales
-app.use(cors({ origin: CORS_ORIGIN }));
+// Helmet: cabeceras HTTP de seguridad (CSP, X-Frame-Options, etc.)
+app.use(helmet());
+// CORS: permite el origen del frontend con credenciales (cookies)
+app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+// Cookie parser: necesaria para leer la cookie httpOnly de sesion
+app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Limite general de peticiones para toda la API
+app.use('/api', apiLimiter);
 
 // Endpoint de salud: verifica que la API este respondiendo
 app.get('/api/health', (req, res) => {

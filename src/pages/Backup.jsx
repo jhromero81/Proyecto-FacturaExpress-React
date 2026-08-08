@@ -9,7 +9,6 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useToast } from '../components/common/Toast';
 import { formatDate } from '../utils/formatters';
 import { getBackups, crearBackup, restaurarBackup, eliminarBackup } from '../services/api';
-import { storageGet } from '../services/storageService';
 import './Backup.css';
 
 /** Formatea un tamanio en bytes a KB/MB */
@@ -50,21 +49,8 @@ const Backup = () => {
 
   /** Cargar al montar */
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await getBackups();
-        if (mounted) setBackups(res.backups || []);
-      } catch (err) {
-        if (mounted) showToast(err.message, 'error');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [showToast]);
+    loadBackups();
+  }, [loadBackups]);
 
   /** Crea un nuevo respaldo */
   const handleCrear = useCallback(async () => {
@@ -84,10 +70,8 @@ const Backup = () => {
   const handleDescargar = useCallback(async (backup) => {
     try {
       const res = await fetch(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:4000/api'}/backup/${encodeURIComponent(backup.archivo)}/download`,
-        {
-          headers: { Authorization: `Bearer ${storageGet('auth_token') || ''}` },
-        }
+        `${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/backup/${encodeURIComponent(backup.archivo)}/download`,
+        { credentials: 'include' }
       );
       if (!res.ok) throw new Error('No fue posible descargar el respaldo.');
       const blob = await res.blob();

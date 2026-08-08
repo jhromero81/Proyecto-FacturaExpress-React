@@ -13,6 +13,13 @@ const {
   deleteProducto,
 } = require('../controllers/productos.controller');
 const { authenticate } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+const {
+  productoBaseValidator,
+  productoUpdateValidator,
+  ajusteStockValidator,
+  idValidator,
+} = require('../validators');
 
 const router = Router();
 
@@ -20,10 +27,10 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', listProductos);
-router.get('/:id', getProducto);
-router.post('/', createProducto);
-router.put('/:id', updateProducto);
-router.patch('/:id/stock', adjustStock);
-router.delete('/:id', deleteProducto);
+router.get('/:id', idValidator, validate, getProducto);
+router.post('/', productoBaseValidator, validate, createProducto);
+router.put('/:id', idValidator, productoUpdateValidator, validate, updateProducto);
+router.patch('/:id/stock', ajusteStockValidator, validate, adjustStock);
+router.delete('/:id', idValidator, validate, deleteProducto);
 
 module.exports = router;

@@ -1,38 +1,13 @@
 /**
  * api.js
  * Cliente HTTP de FacturaExpress.
- * Centraliza las peticiones a la API REST del backend y adjunta
- * el token JWT de autenticacion a cada solicitud protegida.
+ * Centraliza las peticiones a la API REST del backend. La sesion
+ * viaja en una cookie httpOnly establecida por el servidor, por lo
+ * que todas las peticiones se envian con credentials: 'include'.
  */
-
-import { storageGet } from './storageService';
 
 /** URL base de la API (configurable por variable de entorno) */
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
-
-/** Token JWT de la sesion activa (se asigna desde AuthContext) */
-let authToken = null;
-
-/**
- * Establece el token JWT usado en las peticiones autenticadas.
- * @param {string|null} token - Token de sesion o null para limpiarlo.
- */
-export const setAuthToken = (token) => {
-  authToken = token;
-};
-
-/**
- * Obtiene el token de sesion actual, con respaldo en localStorage.
- * Necesario en recargas completas donde el AuthProvider (padre) todavia
- * no sincronizo el token con el cliente HTTP.
- * @returns {string|null} Token JWT o null.
- */
-function getSessionToken() {
-  if (authToken) return authToken;
-  const stored = storageGet('auth_token', null);
-  if (stored) authToken = stored;
-  return authToken;
-}
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 /**
  * Ejecuta una peticion HTTP hacia la API y normaliza la respuesta.
@@ -45,13 +20,9 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
   const config = {
     method,
     headers: { 'Content-Type': 'application/json', ...headers },
+    credentials: 'include',
   };
 
-  // Adjuntar token si existe
-  const token = getSessionToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
   if (body !== undefined) {
     config.body = JSON.stringify(body);
   }
@@ -89,17 +60,14 @@ function extraerFilename(headers) {
 }
 
 /**
- * Descarga un archivo binario (PDF) adjuntando el token de sesion.
+ * Descarga un archivo binario (PDF) adjuntando la cookie de sesion.
  * @param {string} path - Ruta relativa del recurso a descargar.
  * @returns {Promise<{ blob: Blob, filename: string }>} Blob del archivo.
  */
 async function download(path) {
-  const token = getSessionToken();
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
   let res;
   try {
-    res = await fetch(`${API_URL}${path}`, { headers });
+    res = await fetch(`${API_URL}${path}`, { credentials: 'include' });
   } catch (error) {
     throw new Error('No se pudo conectar con el servidor. Verifique que la API este en linea.');
   }
@@ -131,7 +99,8 @@ export const getReportePDF = (periodo = 'mensual') => download(`/reportes/pdf?pe
 // ============================================================
 
 /**
- * Inicia sesion contra la API.
+ * Inicia sesion contra la API. La sesion se establece en una cookie
+ * httpOnly del servidor.
  * @param {string} nit - NIT del usuario.
  * @param {string} password - Contrasena.
  * @returns {Promise<object>} { token, usuario }.
@@ -140,7 +109,13 @@ export const login = (nit, password) =>
   request('/auth/login', { method: 'POST', body: { nit, password } });
 
 /**
- * Consulta el usuario autenticado por el token actual.
+ * Cierra la sesion actual invalidando la cookie del servidor.
+ * @returns {Promise<object>} Respuesta de la API.
+ */
+export const logout = () => request('/auth/logout', { method: 'POST' });
+
+/**
+ * Consulta el usuario autenticado por la cookie de sesion.
  * @returns {Promise<object>} Datos del usuario.
  */
 export const getMe = () => request('/auth/me');

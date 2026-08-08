@@ -92,6 +92,139 @@
   height: auto;
 }
 
+.chart-container {
+  position: relative;
+}
+
+/* Barras interactivas */
+.chart-bar-group {
+  cursor: pointer;
+}
+
+.chart-bar-group:hover .bar-rect {
+  opacity: 0.85;
+}
+
+.bar-rect {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: growBar 0.5s ease-out both;
+  transition: opacity var(--transition);
+}
+
+@keyframes growBar {
+  from {
+    transform: scaleY(0);
+    opacity: 0.4;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.chart-day-label {
+  font-size: 0.8rem;
+  fill: var(--text-muted);
+  font-family: var(--font-body);
+}
+
+.chart-value-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  fill: var(--text-dark);
+  font-family: var(--font-mono);
+}
+
+/* Tooltip del grafico */
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -115%);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  padding: 10px 12px;
+  z-index: 20;
+  min-width: 190px;
+}
+
+.chart-tooltip-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+
+.chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.chart-tooltip-row strong {
+  color: var(--text-dark);
+}
+
+.chart-tooltip-hint {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-align: center;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+
+/* Detalle de periodo (modal) */
+.report-detail-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.report-detail-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.report-detail-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.report-detail-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.report-detail-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.report-detail-variation {
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.report-detail-variation strong {
+  color: var(--accent);
+}
+
 .chart-legend {
   display: flex;
   gap: 24px;

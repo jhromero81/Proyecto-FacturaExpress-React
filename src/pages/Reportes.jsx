@@ -5,8 +5,8 @@
  * y progreso de meta de ventas mensual.
  */
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { formatMoney, formatDate } from '../utils/formatters';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { formatMoney, formatDate, formatShortMoney } from '../utils/formatters';
 import {
   getKPIs,
   getVentasPeriodo,
@@ -38,10 +38,11 @@ const periodoLabel = (periodo) => {
   const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
   if (q && q.startsWith('Q')) return `T${q.slice(1)}`;
-  if (month) {
-    const idx = Number(month) - 1;
-    return meses[idx] || value;
+  const num = Number(month);
+  if (month && !isNaN(num) && num >= 1 && num <= 12) {
+    return meses[num - 1] || value;
   }
+  if (month) return `S${num}`;
   return year || value;
 };
 
@@ -75,6 +76,15 @@ const Reportes = () => {
 
   /** Estado de generacion del PDF */
   const [exporting, setExporting] = useState(false);
+
+  /** Contenido del tooltip del grafico (o null para ocultarlo) */
+  const [tooltip, setTooltip] = useState(null);
+
+  /** Periodo seleccionado al hacer clic en una barra (detalle) */
+  const [detailBar, setDetailBar] = useState(null);
+
+  /** Referencia al contenedor del grafico para posicionar el tooltip */
+  const chartRef = useRef(null);
 
   /** Cargar KPIs y productos top desde la API */
   useEffect(() => {
@@ -121,15 +131,18 @@ const Reportes = () => {
   }, [periodo, showToast]);
 
   /**
-   * Datos para el grafico de barras.
-   * La API entrega las ventas del periodo actual; la serie anterior
-   * se muestra en cero cuando no hay comparativo disponible.
+   * Datos para el grafico de barras comparativo.
+   * La API entrega el total y las facturas de la ventana actual y
+   * de la ventana anterior equivalente para cada periodo.
    */
   const chartData = useMemo(() => {
     return ventasPeriodo.map((v) => ({
+      key: v.periodo,
       mes: periodoLabel(v.periodo),
       actual: Number(v.total) || 0,
-      anterior: 0,
+      facturas: Number(v.facturas) || 0,
+      anterior: Number(v.anterior) || 0,
+      anteriorFacturas: Number(v.anteriorFacturas) || 0,
     }));
   }, [ventasPeriodo]);
 
@@ -138,6 +151,20 @@ const Reportes = () => {
     ...chartData.flatMap((d) => [d.actual, d.anterior]),
     0
   );
+
+  /**
+   * Posiciona el tooltip del grafico segun el mouse sobre la barra.
+   */
+  const handleBarHover = (e, d) => {
+    const rect = chartRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = Math.min(Math.max(e.clientX - rect.left, 100), rect.width - 100);
+    setTooltip({
+      x,
+      y: e.clientY - rect.top,
+      ...d,
+    });
+  };
 
   /** Porcentaje de avance hacia la meta */
   const goalProgress = Math.min(
@@ -247,7 +274,7 @@ const Reportes = () => {
         {/* Grafico de barras comparativo */}
         <div className="content-card">
           <h3 className="card-title">Comparativa de Ventas</h3>
-          <div className="chart-container">
+          <div className="chart-container" ref={chartRef}>
             <svg viewBox="0 0 600 280" className="bar-chart">
               {/* Lineas de referencia */}
               {[0, 1, 2, 3, 4].map((i) => (
@@ -270,19 +297,29 @@ const Reportes = () => {
                 const anteriorHeight = maxChartValue > 0 ? (d.anterior / maxChartValue) * 180 : 0;
 
                 return (
-                  <g key={d.mes}>
+                  <g
+                    key={d.key}
+                    className="chart-bar-group"
+                    onMouseEnter={(e) => handleBarHover(e, d)}
+                    onMouseMove={(e) => handleBarHover(e, d)}
+                    onMouseLeave={() => setTooltip(null)}
+                    onClick={() => setDetailBar(d)}
+                  >
                     {/* Barra periodo anterior (gris) */}
                     <rect
+                      className="bar-rect bar-anterior"
+                      style={{ animationDelay: `${i * 80}ms` }}
                       x={groupX}
                       y={230 - anteriorHeight}
                       width={barWidth}
                       height={anteriorHeight}
                       rx="4"
                       fill="#b0bec5"
-                      opacity="0.7"
                     />
                     {/* Barra periodo actual (teal) */}
                     <rect
+                      className="bar-rect bar-actual"
+                      style={{ animationDelay: `${i * 80 + 60}ms` }}
                       x={groupX + barWidth + 4}
                       y={230 - actualHeight}
                       width={barWidth}
@@ -290,7 +327,29 @@ const Reportes = () => {
                       rx="4"
                       fill="var(--accent)"
                     />
-                    {/* Etiqueta del mes */}
+                    {/* Valor de la barra anterior */}
+                    {d.anterior > 0 && (
+                      <text
+                        x={groupX + barWidth / 2}
+                        y={230 - anteriorHeight - 6}
+                        textAnchor="middle"
+                        className="chart-value-label"
+                      >
+                        {formatShortMoney(d.anterior)}
+                      </text>
+                    )}
+                    {/* Valor de la barra actual */}
+                    {d.actual > 0 && (
+                      <text
+                        x={groupX + barWidth + 4 + barWidth / 2}
+                        y={230 - actualHeight - 6}
+                        textAnchor="middle"
+                        className="chart-value-label"
+                      >
+                        {formatShortMoney(d.actual)}
+                      </text>
+                    )}
+                    {/* Etiqueta del periodo */}
                     <text
                       x={groupX + barWidth + 2}
                       y="255"
@@ -303,6 +362,31 @@ const Reportes = () => {
                 );
               })}
             </svg>
+
+            {/* Tooltip al pasar el mouse sobre una barra */}
+            {tooltip && (
+              <div
+                className="chart-tooltip"
+                style={{ left: tooltip.x, top: tooltip.y }}
+              >
+                <div className="chart-tooltip-title">{tooltip.mes}</div>
+                <div className="chart-tooltip-row">
+                  <span className="legend-dot" style={{ backgroundColor: 'var(--accent)' }} />
+                  <span>
+                    Actual: <strong>{formatMoney(tooltip.actual)}</strong> ·{' '}
+                    {tooltip.facturas} factura(s)
+                  </span>
+                </div>
+                <div className="chart-tooltip-row">
+                  <span className="legend-dot" style={{ backgroundColor: '#b0bec5' }} />
+                  <span>
+                    Anterior: <strong>{formatMoney(tooltip.anterior)}</strong> ·{' '}
+                    {tooltip.anteriorFacturas} factura(s)
+                  </span>
+                </div>
+                <div className="chart-tooltip-hint">Clic para ver detalle</div>
+              </div>
+            )}
           </div>
 
           {/* Leyenda */}
@@ -361,6 +445,58 @@ const Reportes = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de detalle de un periodo del grafico */}
+      {detailBar && (
+        <div className="modal-overlay open" onClick={() => setDetailBar(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Detalle: Periodo {detailBar.mes}</h3>
+            </div>
+            <div className="modal-body">
+              <div className="report-detail-row">
+                <div className="report-detail-block">
+                  <span className="legend-dot" style={{ backgroundColor: 'var(--accent)' }} />
+                  <div>
+                    <div className="report-detail-label">Periodo Actual</div>
+                    <div className="report-detail-value font-mono">
+                      {formatMoney(detailBar.actual)}
+                    </div>
+                    <div className="report-detail-sub font-mono">
+                      {detailBar.facturas} factura(s)
+                    </div>
+                  </div>
+                </div>
+                <div className="report-detail-block">
+                  <span className="legend-dot" style={{ backgroundColor: '#b0bec5' }} />
+                  <div>
+                    <div className="report-detail-label">Periodo Anterior</div>
+                    <div className="report-detail-value font-mono">
+                      {formatMoney(detailBar.anterior)}
+                    </div>
+                    <div className="report-detail-sub font-mono">
+                      {detailBar.anteriorFacturas} factura(s)
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="report-detail-variation">
+                Variacion:{' '}
+                <strong>
+                  {detailBar.anterior > 0
+                    ? `${((detailBar.actual - detailBar.anterior) / detailBar.anterior * 100).toFixed(1)}%`
+                    : '--'}
+                </strong>
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel-compact" onClick={() => setDetailBar(null)}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de historial de reportes */}
       {showHistorial && (

@@ -3,6 +3,7 @@ node_modules/
 
 # Build de produccion
 build/
+dist/
 
 # Variables de entorno (contienen credenciales)
 .env

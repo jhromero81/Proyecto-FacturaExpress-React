@@ -23,7 +23,7 @@ export const validateNIT = (nit) => {
     return { valid: false, message: 'El NIT es obligatorio.' };
   }
   if (!NIT_REGEX.test(nit.trim())) {
-    return { valid: false, message: 'Formato de NIT invalido (ej: 900.123.456-7).' };
+    return { valid: false, message: 'Formato de NIT invalido (ej: 900123456-7).' };
   }
   return { valid: true, message: '' };
 };

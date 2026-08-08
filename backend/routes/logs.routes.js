@@ -9,6 +9,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 const router = Router();
 
+// Todas las rutas de este modulo exigen autenticacion
 router.use(authenticate);
 
 router.get('/', authorize('admin'), listLogs);

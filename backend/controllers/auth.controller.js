@@ -7,14 +7,19 @@
 
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/db');
-const { generateToken } = require('../config/jwt');
+const { generateToken, COOKIE_MAX_AGE_MS } = require('../config/jwt');
 const { asyncHandler, createHttpError } = require('../middleware/errorHandler');
+
+/** La cookie de sesion solo viaja por HTTPS en produccion */
+const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
 /**
  * POST /api/auth/login
  * Inicia sesion validando NIT y contrasena contra la base de
- * datos. En caso de exito devuelve un token JWT y los datos
- * del usuario autenticado.
+ * datos. En caso de exito:
+ *  - Establece una cookie httpOnly con el JWT (mecanismo del frontend,
+ *    inmune a XSS porque el token no es legible por JavaScript).
+ *  - Devuelve el token en el cuerpo para clientes externos/Postman.
  *
  * Body: { nit, password }
  */
@@ -56,6 +61,15 @@ const login = asyncHandler(async (req, res) => {
     rol: usuario.rol,
   });
 
+  // Cookie httpOnly: el token no es accesible desde JavaScript (anti-XSS)
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'lax',
+    maxAge: COOKIE_MAX_AGE_MS,
+    path: '/',
+  });
+
   // Respuesta sin informacion sensible
   res.json({
     success: true,
@@ -70,6 +84,20 @@ const login = asyncHandler(async (req, res) => {
       rol: usuario.rol,
     },
   });
+});
+
+/**
+ * POST /api/auth/logout
+ * Cierra la sesion invalidando la cookie httpOnly del cliente.
+ */
+const logout = asyncHandler(async (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: COOKIE_SECURE,
+    sameSite: 'lax',
+    path: '/',
+  });
+  res.json({ success: true, message: 'Sesion cerrada correctamente.' });
 });
 
 /**
@@ -91,4 +119,4 @@ const getMe = asyncHandler(async (req, res) => {
   res.json({ success: true, usuario: usuarioSeguro });
 });
 
-module.exports = { login, getMe };
+module.exports = { login, logout, getMe };

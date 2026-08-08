@@ -4,9 +4,9 @@
  * Muestra KPIs del dia, grafico de ventas semanales y ultimas transacciones.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 
-import { formatMoney, timeAgo } from '../utils/formatters';
+import { formatMoney, formatDate, formatShortMoney, timeAgo } from '../utils/formatters';
 import {
   getKPIs,
   getVentasSemanales,
@@ -47,6 +47,15 @@ const Dashboard = () => {
   /** Estado de carga del panel */
   const [loading, setLoading] = useState(true);
 
+  /** Contenido del tooltip del grafico (o null para ocultarlo) */
+  const [tooltip, setTooltip] = useState(null);
+
+  /** Dia seleccionado al hacer clic en una barra (detalle) */
+  const [detailBar, setDetailBar] = useState(null);
+
+  /** Referencia al contenedor del grafico para posicionar el tooltip */
+  const chartRef = useRef(null);
+
   /** Cargar los datos del dashboard desde la API */
   useEffect(() => {
     let mounted = true;
@@ -86,13 +95,45 @@ const Dashboard = () => {
     };
   }, [kpis]);
 
-  /** Datos del grafico de ventas semanales desde la API */
+  /**
+   * Datos del grafico de ventas semanales.
+   * Se completan los 7 dias de la semana (los dias sin ventas valen 0)
+   * para que el grafico muestre la semana completa en orden.
+   */
   const chartData = useMemo(() => {
-    return ventasSemanales.map((v) => ({
-      day: shortDay(v.dia),
-      value: Number(v.total) || 0,
-    }));
+    const byDate = new Map(ventasSemanales.map((v) => [v.dia, v]));
+    const dias = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const iso = [
+        d.getFullYear(),
+        String(d.getMonth() + 1).padStart(2, '0'),
+        String(d.getDate()).padStart(2, '0'),
+      ].join('-');
+      const row = byDate.get(iso);
+      dias.push({
+        key: iso,
+        day: shortDay(iso),
+        fecha: iso,
+        value: Number(row?.total) || 0,
+        facturas: Number(row?.facturas) || 0,
+      });
+    }
+    return dias;
   }, [ventasSemanales]);
+
+  /** Total de ventas de la semana */
+  const semanaTotal = useMemo(
+    () => chartData.reduce((sum, d) => sum + d.value, 0),
+    [chartData]
+  );
+
+  /** Dia con mayores ventas de la semana */
+  const mejorDia = useMemo(
+    () => chartData.reduce((best, d) => (d.value > best.value ? d : best), chartData[0]),
+    [chartData]
+  );
 
   /** Ultimas transacciones ordenadas (la API ya las devuelve recientes) */
   const lastTransactions = useMemo(() => {
@@ -101,6 +142,21 @@ const Dashboard = () => {
 
   /** Valor maximo del grafico para escalar las barras */
   const maxChartValue = Math.max(...chartData.map((d) => d.value), 0);
+
+  /**
+   * Posiciona el tooltip del grafico segun el mouse sobre la barra.
+   */
+  const handleBarHover = (e, d) => {
+    const rect = chartRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = Math.min(Math.max(e.clientX - rect.left, 95), rect.width - 95);
+    const y = Math.max(e.clientY - rect.top, 80);
+    setTooltip({
+      x,
+      y,
+      ...d,
+    });
+  };
 
   /**
    * Configuracion de las tarjetas KPI.
@@ -170,7 +226,7 @@ const Dashboard = () => {
         {/* Grafico de ventas semanales */}
         <div className="content-card chart-card">
           <h3 className="card-title">Ventas de la Semana</h3>
-          <div className="chart-container">
+          <div className="chart-container" ref={chartRef}>
             <svg viewBox="0 0 600 250" className="weekly-chart">
               {/* Definicion del gradiente de relleno */}
               <defs>
@@ -196,47 +252,47 @@ const Dashboard = () => {
               {/* Barras del grafico */}
               {chartData.map((d, i) => {
                 const barHeight = maxChartValue > 0 ? (d.value / maxChartValue) * 160 : 0;
-                const x = 80 + i * 90;
+                const step = 520 / chartData.length;
+                const barWidth = 42;
+                const center = 60 + i * step + step / 2;
+                const x = center - barWidth / 2;
                 const y = 210 - barHeight;
+                const esMejor = d.value > 0 && d.key === mejorDia?.key;
                 return (
-                  <g key={d.day}>
+                  <g
+                    key={d.key}
+                    className="chart-bar-group"
+                    onMouseEnter={(e) => handleBarHover(e, d)}
+                    onMouseMove={(e) => handleBarHover(e, d)}
+                    onMouseLeave={() => setTooltip(null)}
+                    onClick={() => setDetailBar(d)}
+                  >
                     {/* Barra */}
                     <rect
+                      className="bar-rect"
+                      style={{ animationDelay: `${i * 60}ms` }}
                       x={x}
                       y={y}
-                      width="50"
+                      width={barWidth}
                       height={barHeight}
                       rx="6"
                       fill="var(--accent)"
-                      opacity="0.85"
-                    >
-                      <animate
-                        attributeName="height"
-                        from="0"
-                        to={barHeight}
-                        dur="0.6s"
-                        fill="freeze"
-                      />
-                      <animate
-                        attributeName="y"
-                        from="210"
-                        to={y}
-                        dur="0.6s"
-                        fill="freeze"
-                      />
-                    </rect>
-                    {/* Valor sobre la barra */}
-                    <text
-                      x={x + 25}
-                      y={y - 8}
-                      textAnchor="middle"
-                      className="chart-value-label"
-                    >
-                      {formatMoney(d.value)}
-                    </text>
+                      opacity={esMejor ? 1 : 0.85}
+                    />
+                    {/* Valor sobre la barra (solo si hay ventas) */}
+                    {d.value > 0 && (
+                      <text
+                        x={center}
+                        y={y - 8}
+                        textAnchor="middle"
+                        className="chart-value-label"
+                      >
+                        {formatShortMoney(d.value)}
+                      </text>
+                    )}
                     {/* Etiqueta del dia */}
                     <text
-                      x={x + 25}
+                      x={center}
                       y="235"
                       textAnchor="middle"
                       className="chart-day-label"
@@ -247,6 +303,32 @@ const Dashboard = () => {
                 );
               })}
             </svg>
+
+            {/* Tooltip al pasar el mouse sobre una barra */}
+            {tooltip && (
+              <div className="chart-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+                <div className="chart-tooltip-title">
+                  {tooltip.day} · {formatDate(tooltip.fecha)}
+                </div>
+                <div className="chart-tooltip-row">
+                  <span className="legend-dot" style={{ backgroundColor: 'var(--accent)' }} />
+                  <span>
+                    Ventas: <strong>{formatMoney(tooltip.value)}</strong>
+                  </span>
+                </div>
+                <div className="chart-tooltip-row">
+                  <span className="material-icons">receipt_long</span>
+                  <span>{tooltip.facturas} factura(s)</span>
+                </div>
+                {semanaTotal > 0 && (
+                  <div className="chart-tooltip-row">
+                    <span className="material-icons">pie_chart</span>
+                    <span>{((tooltip.value / semanaTotal) * 100).toFixed(1)}% de la semana</span>
+                  </div>
+                )}
+                <div className="chart-tooltip-hint">Clic para ver detalle</div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -302,6 +384,57 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de detalle de un dia del grafico */}
+      {detailBar && (
+        <div className="modal-overlay open" onClick={() => setDetailBar(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Detalle del dia {detailBar.day}</h3>
+            </div>
+            <div className="modal-body">
+              <div className="report-detail-row">
+                <div className="report-detail-block">
+                  <span className="material-icons">today</span>
+                  <div>
+                    <div className="report-detail-label">Fecha</div>
+                    <div className="report-detail-value">{formatDate(detailBar.fecha)}</div>
+                  </div>
+                </div>
+                <div className="report-detail-block">
+                  <span className="legend-dot" style={{ backgroundColor: 'var(--accent)' }} />
+                  <div>
+                    <div className="report-detail-label">Ventas del dia</div>
+                    <div className="report-detail-value font-mono">
+                      {formatMoney(detailBar.value)}
+                    </div>
+                    <div className="report-detail-sub font-mono">
+                      {detailBar.facturas} factura(s)
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="report-detail-variation">
+                Participacion en la semana:{' '}
+                <strong>
+                  {semanaTotal > 0 ? `${((detailBar.value / semanaTotal) * 100).toFixed(1)}%` : '--'}
+                </strong>
+              </p>
+              {detailBar.key === mejorDia?.key && detailBar.value > 0 && (
+                <p className="report-detail-best">
+                  <span className="material-icons">emoji_events</span>
+                  Mejor dia de la semana
+                </p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel-compact" onClick={() => setDetailBar(null)}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

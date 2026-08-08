@@ -1,4 +1,5 @@
 $kind: collection
+name: FacturaExpress API (Express)
 description: |-
   Coleccion de pruebas para la API REST Express de FacturaExpress (puerto 4000). Adaptacion de las colecciones Postman del proyecto Java (Spring MVC + CSRF) al esquema JSON REST + Bearer JWT.
 

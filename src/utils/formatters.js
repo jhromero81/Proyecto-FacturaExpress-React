@@ -22,6 +22,18 @@ export const formatMoney = (valor) => {
 };
 
 /**
+ * Formatea un valor numerico en formato corto para etiquetas de graficos.
+ * @param {number} valor - Cantidad a formatear.
+ * @returns {string} Monto abreviado (ej: "$1,2 M", "$500 K").
+ */
+export const formatShortMoney = (valor) => {
+  if (typeof valor !== 'number' || isNaN(valor) || valor <= 0) return '$0';
+  if (valor >= 1_000_000) return `$${(valor / 1_000_000).toFixed(1).replace('.', ',')} M`;
+  if (valor >= 1_000) return `$${Math.round(valor / 1_000)} K`;
+  return `$${Math.round(valor)}`;
+};
+
+/**
  * Formatea una cadena ISO o Date a formato local colombiano.
  * @param {string|Date} fechaStr - Fecha a formatear.
  * @returns {string} Fecha formateada (dd/mm/yyyy).
@@ -59,7 +71,9 @@ export const timeAgo = (fechaStr) => {
 };
 
 /**
- * Genera un numero de factura unico con formato FAC-YYYYMM-XXXXX.
+ * Genera un numero de factura con formato FAC-YYYYMM-XXXXX.
+ * NOTA: la numeracion oficial la genera el backend (secuencial);
+ * esta funcion es un respaldo visual/estimativo del frontend.
  * @returns {string} Numero de factura generado.
  */
 export const generateInvoiceNumber = () => {

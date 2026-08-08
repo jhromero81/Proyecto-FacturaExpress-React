@@ -1,0 +1,55 @@
+# ============================================================
+# FacturaExpress - Infraestructura de desarrollo
+# Levanta la base de datos MySQL 8 y la API REST con un solo
+# comando:  docker compose up --build
+# API en:    http://localhost:4000/api/health
+# ============================================================
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: facturaexpress_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: facturaexpress_apirest
+      MYSQL_USER: facturaexpress
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-factura123}
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+
+  api:
+    build: ./backend
+    container_name: facturaexpress_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      # Produccion: cookies con Secure, errores 500 sin detalles y
+      # exige JWT_SECRET. Definalo en un archivo .env en la raiz.
+      NODE_ENV: production
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: facturaexpress
+      DB_PASSWORD: ${MYSQL_PASSWORD:-factura123}
+      DB_NAME: facturaexpress_apirest
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 8h
+    # Prepara la base de datos (esquema + datos semilla) y arranca la API
+    command: sh -c "node scripts/setupDb.js && node server.js"
+    ports:
+      - "4000:4000"
+
+volumes:
+  db_data:

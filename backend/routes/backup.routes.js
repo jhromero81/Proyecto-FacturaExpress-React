@@ -15,6 +15,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 const router = Router();
 
+// Respaldo y restauracion: solo autenticados con rol admin
 router.use(authenticate, authorize('admin'));
 
 router.get('/', listBackups);

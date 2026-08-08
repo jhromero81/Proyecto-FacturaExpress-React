@@ -1,0 +1,154 @@
+# ============================================================
+# FacturaExpress - Integracion continua (GitHub Actions)
+# Ejecuta sobre cada push o pull request:
+#   1. Backend: verifica sintaxis, crea la BD y prueba la API
+#      contra una instancia de MySQL 8 real.
+#   2. Frontend: construye la aplicacion con Vite.
+# ============================================================
+
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (Node.js + Express + MySQL)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root123
+          MYSQL_DATABASE: facturaexpress_apirest
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot123"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: npm ci
+
+      - name: Verificar sintaxis de todos los archivos .js
+        working-directory: backend
+        run: |
+          for file in $(find . -name "*.js" -not -path "./node_modules/*"); do
+            node --check "$file"
+          done
+          echo "Sintaxis correcta en $(find . -name '*.js' -not -path './node_modules/*' | wc -l) archivos"
+
+      - name: Crear base de datos y datos semilla
+        working-directory: backend
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root123
+          DB_NAME: facturaexpress_apirest
+        run: npm run db:setup
+
+      - name: Iniciar API y probar endpoints
+        working-directory: backend
+        env:
+          PORT: 4000
+          CORS_ORIGIN: http://localhost:3000
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: root123
+          DB_NAME: facturaexpress_apirest
+          JWT_SECRET: secreto_de_prueba_ci
+          JWT_EXPIRES_IN: 8h
+        run: |
+          node server.js > server.log 2>&1 &
+          API_PID=$!
+
+          # Esperar a que el servidor responda (maximo 30 segundos)
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/api/health; then
+              break
+            fi
+            sleep 1
+          done
+
+          # Health check
+          curl -fsS http://127.0.0.1:4000/api/health
+          echo ""
+
+          # Login y prueba de un endpoint protegido
+          TOKEN=$(curl -fsS -X POST http://127.0.0.1:4000/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"nit":"900.123.456-7","password":"admin123"}' \
+            | node -pe "JSON.parse(require('fs').readFileSync(0)).token")
+
+          curl -fsS http://127.0.0.1:4000/api/clientes \
+            -H "Authorization: Bearer $TOKEN" > /dev/null
+
+          # Cookie de sesion httpOnly: el login debe guardarla
+          curl -fsS -c cookies.txt -X POST http://127.0.0.1:4000/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"nit":"900.123.456-7","password":"admin123"}' > /dev/null
+          grep -q "#HttpOnly_.*token" cookies.txt && echo "Cookie httpOnly OK"
+          curl -fsS -b cookies.txt http://127.0.0.1:4000/api/clientes > /dev/null \
+            && echo "Acceso con cookie OK"
+
+          # Validacion de entrada: cliente sin nombre -> 400
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:4000/api/clientes \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"identificacion":"123"}')
+          [ "$HTTP" = "400" ] && echo "Validacion de entrada OK (400)"
+
+          # Ruta protegida sin sesion -> 401
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:4000/api/clientes)
+          [ "$HTTP" = "401" ] && echo "Proteccion de rutas OK (401)"
+
+          # Rate limit: tras 7 intentos fallidos de login el limite (5/15min) se cumple -> 429
+          for i in 1 2 3 4 5 6 7; do
+            curl -s -o /dev/null -X POST http://127.0.0.1:4000/api/auth/login \
+              -H "Content-Type: application/json" \
+              -d '{"nit":"900.123.456-7","password":"clave_incorrecta"}' || true
+          done
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:4000/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"nit":"900.123.456-7","password":"clave_incorrecta"}')
+          [ "$HTTP" = "429" ] && echo "Rate limit OK (429)"
+
+          echo "API respondiendo correctamente"
+          kill $API_PID
+
+  frontend:
+    name: Frontend (React + Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Construir aplicacion
+        run: npm run build

@@ -1,5 +1,5 @@
 /**
- * App.js
+ * App.jsx
  * Componente raiz de FacturaExpress.
  * Configura el enrutamiento global, proveedores de contexto y
  * define las rutas publicas y protegidas de la aplicacion.

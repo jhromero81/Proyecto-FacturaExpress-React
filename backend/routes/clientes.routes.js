@@ -12,6 +12,8 @@ const {
   deleteCliente,
 } = require('../controllers/clientes.controller');
 const { authenticate } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+const { clienteBaseValidator, clienteUpdateValidator, idValidator } = require('../validators');
 
 const router = Router();
 
@@ -19,9 +21,9 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', listClientes);
-router.get('/:id', getCliente);
-router.post('/', createCliente);
-router.put('/:id', updateCliente);
-router.delete('/:id', deleteCliente);
+router.get('/:id', idValidator, validate, getCliente);
+router.post('/', clienteBaseValidator, validate, createCliente);
+router.put('/:id', idValidator, clienteUpdateValidator, validate, updateCliente);
+router.delete('/:id', idValidator, validate, deleteCliente);
 
 module.exports = router;

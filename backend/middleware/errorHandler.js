@@ -27,15 +27,19 @@ function notFound(req, res) {
  * @param {function} next - Funcion siguiente (no utilizada).
  */
 function errorHandler(error, req, res, next) {
-  // Registrar el error en consola para diagnostico
-  console.error(`[error] ${error.message}`);
+  // Registrar el error completo en consola para diagnostico
+  console.error(`[error] ${error.stack || error.message}`);
 
   // Errores controlados por la aplicacion llevan statusCode
   const statusCode = error.statusCode || 500;
 
+  // En produccion los errores 500 no exponen detalles internos
+  // (consultas SQL, rutas, etc.) al cliente; solo se loguean.
+  const ocultarDetalle = statusCode >= 500 && process.env.NODE_ENV === 'production';
+
   res.status(statusCode).json({
     success: false,
-    message: error.expose === false ? 'Error interno del servidor.' : error.message,
+    message: ocultarDetalle ? 'Error interno del servidor.' : error.message,
   });
 }
 

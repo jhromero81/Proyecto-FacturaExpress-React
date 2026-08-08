@@ -48,6 +48,15 @@
   gap: 16px;
 }
 
+/* Busqueda de cliente con autocompletado */
+.ventas-client-search {
+  position: relative;
+}
+
+.ventas-client-search .form-group {
+  position: relative;
+}
+
 /* ============================
    BUSQUEDA DE PRODUCTOS
    ============================ */
