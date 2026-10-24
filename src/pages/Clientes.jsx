@@ -9,6 +9,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useDebounce from '../hooks/useDebounce';
 import { useToast } from '../components/common/Toast';
+import useDialog from '../hooks/useDialog';
 import { validateCliente } from '../utils/validators';
 import { storageSet } from '../services/storageService';
 import { getClientes, createCliente, updateCliente, deleteCliente } from '../services/api';
@@ -55,6 +56,9 @@ const Clientes = () => {
 
   /** Control del modal de nuevo cliente */
   const [showModal, setShowModal] = useState(false);
+
+  /** Comportamiento accesible del modal (foco, Escape, scroll) */
+  const dialogProps = useDialog(showModal, () => setShowModal(false));
 
   /** Cliente en edicion (null = crear) */
   const [editingId, setEditingId] = useState(null);
@@ -236,7 +240,7 @@ const Clientes = () => {
           setFormData({ identificacion: '', nombre: '', email: '', telefono: '' });
         }}
       >
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-content" {...dialogProps} onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <h3>{editingId ? 'Editar Cliente' : 'Nuevo Cliente'}</h3>
           </div>

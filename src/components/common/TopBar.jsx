@@ -20,18 +20,23 @@ const TopBar = ({ title }) => {
       {/* Titulo de la pagina */}
       <h1 className="topbar-title font-mono">{title}</h1>
 
-      {/* Indicador de estado DIAN */}
-      <div className="topbar-dian">
+      {/* Indicador del modo de operacion: no hay integracion real con la DIAN */}
+      <div
+        className="topbar-dian"
+        title="Los comprobantes son de demostracion: no se envian a la DIAN"
+      >
         <span className="pulse-dot" />
-        <span className="dian-text">DIAN SINCRONIZADO</span>
+        <span className="dian-text">MODO DEMOSTRACION</span>
       </div>
 
       {/* Controles de accesibilidad e informacion de usuario */}
       <div className="topbar-right">
         {/* Toggle modo oscuro */}
         <button
+          type="button"
           className="topbar-icon-btn"
           onClick={toggleDarkMode}
+          aria-pressed={preferences.modoOscuro}
           title={preferences.modoOscuro ? 'Desactivar modo oscuro' : 'Activar modo oscuro'}
         >
           <span className="material-icons">
@@ -41,9 +46,15 @@ const TopBar = ({ title }) => {
 
         {/* Toggle alto contraste */}
         <button
+          type="button"
           className="topbar-icon-btn"
           onClick={toggleHighContrast}
-          title={preferences.altoContraste ? 'Desactivar alto contraste' : 'Activar alto contraste'}
+          aria-pressed={preferences.altoContraste}
+          title={
+            preferences.altoContraste
+              ? 'Desactivar alto contraste'
+              : 'Activar alto contraste (desactiva el modo oscuro)'
+          }
         >
           <span className="material-icons">contrast</span>
         </button>

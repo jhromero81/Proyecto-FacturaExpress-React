@@ -21,4 +21,5 @@ scripts:
           pm.expect(pm.response.json().success).to.be.true;
       });
     language: text/javascript
+examples: .resources/8.2 Guardar datos de la empresa.resources/examples
 order: 2000

@@ -192,9 +192,16 @@ export const createFactura = (data) =>
 export const updateFacturaEstado = (id, estado) =>
   request(`/facturas/${id}/estado`, { method: 'PUT', body: { estado } });
 
-/** Anula una factura por id. */
-export const deleteFactura = (id) =>
-  request(`/facturas/${id}`, { method: 'DELETE' });
+/**
+ * Anula una factura emitiendo una nota credito (no se borra nunca).
+ * @param {number} id - Factura a anular.
+ * @param {string} motivo - Motivo de la anulacion (minimo 5 caracteres).
+ */
+export const anularFactura = (id, motivo) =>
+  request(`/facturas/${id}/nota-credito`, { method: 'POST', body: { motivo } });
+
+/** Notas credito asociadas a una factura. */
+export const getNotasCredito = (id) => request(`/facturas/${id}/notas-credito`);
 
 /** Descarga el XML de una factura (formato DIAN). */
 export const getFacturaXML = (id) => request(`/facturas/${id}/xml`);

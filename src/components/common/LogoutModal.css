@@ -1,9 +1,12 @@
 /**
  * LogoutModal.css
- * Estilos del modal de cierre de sesion.
- * Incluye el encabezado con gradiente, informacion de sesion y spinner de carga.
+ * Estilos del modal de confirmacion de cierre de sesion.
+ * Copiado de FacturaExpress-V3 layout.component.css (version Angular).
  */
 
+/* ============================
+   MODAL DE CIERRE DE SESION
+   ============================ */
 .logout-modal {
   background: var(--card-bg);
   border-radius: 16px;
@@ -14,19 +17,20 @@
   box-shadow: var(--shadow-lg);
 }
 
-/* Encabezado con gradiente oscuro */
 .logout-header {
   background: linear-gradient(135deg, var(--sidebar-bg), #162230);
   padding: 24px;
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #fff;
+  /* Fondo oscuro: la tinta es la del sidebar, no la del acento
+     (--accent-on en modo oscuro es casi negro y desaparecia aqui) */
+  color: var(--sidebar-text);
 }
 
 .logout-header-icon {
   font-size: 28px;
-  color: var(--accent);
+  color: var(--accent-on-dark);
 }
 
 .logout-header h3 {
@@ -34,7 +38,6 @@
   font-weight: 700;
 }
 
-/* Cuerpo del modal */
 .logout-body {
   padding: 24px;
 }
@@ -49,7 +52,7 @@
   padding: 12px 16px;
   margin-bottom: 20px;
   font-size: 0.85rem;
-  color: var(--warning);
+  color: var(--warning-ink);
 }
 
 .logout-warning .material-icons {
@@ -58,7 +61,6 @@
   margin-top: 1px;
 }
 
-/* Info de sesion */
 .logout-session-info {
   display: flex;
   flex-direction: column;
@@ -88,7 +90,6 @@
   color: var(--text-dark);
 }
 
-/* Pie del modal */
 .logout-footer {
   padding: 16px 24px;
   border-top: 1px solid var(--border);
@@ -97,7 +98,6 @@
   gap: 12px;
 }
 
-/* Spinner de carga */
 .logout-loading {
   position: absolute;
   top: 0;
@@ -114,11 +114,11 @@
   width: 36px;
   height: 36px;
   border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: var(--accent);
+  border-top-color: var(--accent-ink);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: girar 0.8s linear infinite;
 }
 
-@keyframes spin {
+@keyframes girar {
   to { transform: rotate(360deg); }
 }

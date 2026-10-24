@@ -10,6 +10,7 @@ import React, { createContext, useState, useCallback, useEffect, useMemo, useRef
 import { storageGet, storageSet, clearSession } from '../services/storageService';
 import { login as apiLogin, logout as apiLogout, getMe } from '../services/api';
 import { PERFILES_USUARIO } from '../utils/constants';
+import { alternarModo, aplicarCambios, normalizarPreferencias } from '../utils/preferences';
 
 /** Crear el contexto de autenticacion */
 const AuthContext = createContext(null);
@@ -31,11 +32,15 @@ export const AuthProvider = ({ children }) => {
 
   /** Preferencias de accesibilidad */
   const [preferences, setPreferences] = useState(() => {
-    return storageGet('prefs', {
+    const guardadas = storageGet('prefs', {
       modoOscuro: false,
       altoContraste: false,
       tamanoTexto: 'medium',
     });
+    // Una version anterior permitia tener los dos modos activos a la vez
+    const normalizadas = normalizarPreferencias(guardadas);
+    if (normalizadas !== guardadas) storageSet('prefs', normalizadas);
+    return normalizadas;
   });
 
   /** Momento en que se inicio la sesion */
@@ -72,7 +77,10 @@ export const AuthProvider = ({ children }) => {
         const perfil = PERFILES_USUARIO[result.usuario.rol?.toUpperCase()];
         setUser({
           ...result.usuario,
-          rol: perfil ? perfil.nombre : result.usuario.rol,
+          // rol: valor tecnico ('admin') para comparaciones de permisos;
+          // rolNombre: etiqueta legible para la interfaz (como en Angular)
+          rol: perfil ? perfil.rol : result.usuario.rol,
+          rolNombre: perfil ? perfil.nombre : result.usuario.rol,
         });
         setIsLoggedIn(true);
       } catch (error) {
@@ -103,7 +111,9 @@ export const AuthProvider = ({ children }) => {
     const perfil = PERFILES_USUARIO[result.usuario.rol?.toUpperCase()];
     const userData = {
       ...result.usuario,
-      rol: perfil ? perfil.nombre : result.usuario.rol,
+      // rol tecnico para permisos + etiqueta legible para la interfaz
+      rol: perfil ? perfil.rol : result.usuario.rol,
+      rolNombre: perfil ? perfil.nombre : result.usuario.rol,
     };
 
     const now = new Date().toISOString();
@@ -133,25 +143,30 @@ export const AuthProvider = ({ children }) => {
    */
   const updatePreferences = useCallback((newPrefs) => {
     setPreferences((prev) => {
-      const updated = { ...prev, ...newPrefs };
+      const updated = aplicarCambios(prev, newPrefs);
       storageSet('prefs', updated);
       return updated;
     });
   }, []);
 
-  /** Alterna el modo oscuro */
+  /**
+   * Alterna el modo oscuro.
+   * Encenderlo apaga el alto contraste: los dos modos definen la paleta
+   * completa y combinados mezclan tokens de ambos (texto claro del oscuro
+   * sobre el fondo blanco del alto contraste, bordes negros sobre negro).
+   */
   const toggleDarkMode = useCallback(() => {
     setPreferences((prev) => {
-      const updated = { ...prev, modoOscuro: !prev.modoOscuro };
+      const updated = alternarModo(prev, 'modoOscuro');
       storageSet('prefs', updated);
       return updated;
     });
   }, []);
 
-  /** Alterna el alto contraste */
+  /** Alterna el alto contraste. Encenderlo apaga el modo oscuro. */
   const toggleHighContrast = useCallback(() => {
     setPreferences((prev) => {
-      const updated = { ...prev, altoContraste: !prev.altoContraste };
+      const updated = alternarModo(prev, 'altoContraste');
       storageSet('prefs', updated);
       return updated;
     });

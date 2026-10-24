@@ -13,4 +13,5 @@ scripts:
           pm.expect(json.noResueltos).to.be.a('number');
       });
     language: text/javascript
+examples: .resources/10.1 Listar errores.resources/examples
 order: 1000

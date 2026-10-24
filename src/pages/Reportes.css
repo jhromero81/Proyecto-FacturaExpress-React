@@ -1,7 +1,7 @@
 /**
- * Reportes.css
- * Estilos del modulo de reportes y estadisticas.
- * Incluye KPIs, grafico de barras, productos top y meta de ventas.
+ * features/reportes/reportes.component.css
+ * Estilos de reportes: KPIs con borde lateral, grafico comparativo,
+ * productos top y meta de ventas (reemplaza Reportes.css).
  */
 
 /* ============================
@@ -32,8 +32,13 @@
 }
 
 .report-kpi-icon {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: 28px;
+}
+
+.report-kpi-info {
+  display: flex;
+  flex-direction: column;
 }
 
 .report-kpi-value {
@@ -55,16 +60,40 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
+  gap: 12px;
 }
 
 .reportes-toolbar .btn-outline-accent {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  height: 38px;
+  padding: 0 18px;
+  background: transparent;
+  color: var(--accent-ink);
+  border: 1.5px solid var(--accent);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.reportes-toolbar .btn-outline-accent:hover:not(:disabled) {
+  background-color: rgba(26, 188, 156, 0.08);
+}
+
+.reportes-toolbar .btn-outline-accent:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .reportes-toolbar .material-icons {
   font-size: 18px;
+}
+
+.reportes-toolbar .filter-group:first-child {
+  margin-right: auto;
 }
 
 /* ============================
@@ -96,7 +125,6 @@
   position: relative;
 }
 
-/* Barras interactivas */
 .chart-bar-group {
   cursor: pointer;
 }
@@ -108,11 +136,11 @@
 .bar-rect {
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: growBar 0.5s ease-out both;
+  animation: growBarReporte 0.5s ease-out both;
   transition: opacity var(--transition);
 }
 
-@keyframes growBar {
+@keyframes growBarReporte {
   from {
     transform: scaleY(0);
     opacity: 0.4;
@@ -124,19 +152,19 @@
 }
 
 .chart-day-label {
-  font-size: 0.8rem;
+  font-size: 11px;
   fill: var(--text-muted);
   font-family: var(--font-body);
+  font-weight: 600;
 }
 
 .chart-value-label {
-  font-size: 0.7rem;
+  font-size: 9px;
   font-weight: 600;
-  fill: var(--text-dark);
+  fill: var(--text-muted);
   font-family: var(--font-mono);
 }
 
-/* Tooltip del grafico */
 .chart-tooltip {
   position: absolute;
   pointer-events: none;
@@ -174,7 +202,7 @@
 .chart-tooltip-hint {
   margin-top: 6px;
   font-size: 0.7rem;
-  color: var(--accent);
+  color: var(--accent-ink);
   text-align: center;
   border-top: 1px solid var(--border);
   padding-top: 6px;
@@ -222,7 +250,7 @@
 }
 
 .report-detail-variation strong {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .chart-legend {
@@ -240,12 +268,6 @@
   color: var(--text-muted);
 }
 
-.legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-}
-
 /* ============================
    SIDEBAR DE REPORTES
    ============================ */
@@ -255,7 +277,6 @@
   gap: 20px;
 }
 
-/* Productos mas vendidos */
 .top-products {
   display: flex;
   flex-direction: column;
@@ -279,7 +300,7 @@
 .product-rank {
   font-family: var(--font-mono);
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: 1rem;
   min-width: 30px;
 }
@@ -287,6 +308,12 @@
 .product-details {
   display: flex;
   flex-direction: column;
+}
+
+.product-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dark);
 }
 
 .product-sold {
@@ -310,7 +337,7 @@
 .goal-percent {
   font-size: 1.3rem;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .goal-target {

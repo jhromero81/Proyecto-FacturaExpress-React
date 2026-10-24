@@ -8,6 +8,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import useDebounce from '../hooks/useDebounce';
 import { useToast } from '../components/common/Toast';
+import useDialog from '../hooks/useDialog';
 import { formatMoney } from '../utils/formatters';
 import { validateProducto } from '../utils/validators';
 import { getProductos, createProducto, updateProducto, adjustProductoStock, deleteProducto } from '../services/api';
@@ -53,6 +54,11 @@ const Productos = () => {
 
   /** Modal de ajuste de stock */
   const [stockTarget, setStockTarget] = useState(null);
+
+  /** Comportamiento accesible del modal de crear/editar */
+  const dialogProps = useDialog(showModal, () => setShowModal(false));
+  /** Comportamiento accesible del modal de stock */
+  const stockDialogProps = useDialog(Boolean(stockTarget), () => setStockTarget(null));
   const [stockCantidad, setStockCantidad] = useState(1);
 
   /** Cargar productos desde la API al montar */
@@ -282,7 +288,7 @@ const Productos = () => {
         className={`modal-overlay ${showModal ? 'open' : ''}`}
         onClick={() => setShowModal(false)}
       >
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-content" {...dialogProps} onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <h3>{editingId ? 'Editar Producto' : 'Nuevo Producto'}</h3>
           </div>
@@ -364,7 +370,7 @@ const Productos = () => {
       {/* Modal de ajuste de stock */}
       {stockTarget && (
         <div className="modal-overlay open" onClick={() => setStockTarget(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" {...stockDialogProps} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Ajustar Stock - {stockTarget.nombre}</h3>
             </div>

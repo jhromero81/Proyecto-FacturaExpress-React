@@ -1,0 +1,23 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/configuracion/empresa"
+  method: PUT
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer {{token}}
+  body:
+    type: text
+    content: |-
+      {
+        "nit": "900.123.456-7",
+        "razonSocial": "FacturaExpress SAS",
+        "emailFacturacion": "facturacion@facturaexpress.co",
+        "telefono": "6012345678"
+      }
+response:
+  statusCode: 200
+  statusText: ""
+  body:
+    type: json
+    content: ""
+order: 1786742162753

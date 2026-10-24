@@ -1,9 +1,13 @@
 /**
  * Sidebar.css
- * Estilos del componente de navegacion lateral.
- * Incluye el logo, enlaces, estado activo y pie de pagina del sidebar.
+ * Estilos del componente de navegacion lateral (sidebar, logo, enlaces y pie).
+ * Copiado de FacturaExpress-V3 layout.component.css para mantener la
+ * apariencia identica a la version Angular.
  */
 
+/* ============================
+   SIDEBAR
+   ============================ */
 .sidebar {
   position: fixed;
   top: 0;
@@ -15,6 +19,12 @@
   flex-direction: column;
   z-index: 100;
   transition: background-color var(--transition);
+
+  /* Dentro del sidebar el fondo es oscuro: los tokens de texto y de acento
+     se redefinen aqui para que el contraste se mida contra ese fondo. */
+  --text-muted: var(--sidebar-text);
+  --text-dark: #ffffff;
+  --accent-ink: var(--accent-on-dark);
 }
 
 /* Logo area */
@@ -34,7 +44,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--accent-on);
   font-weight: 800;
   font-size: 1.1rem;
   font-family: var(--font-mono);
@@ -55,6 +65,19 @@
   padding: 16px 0;
   gap: 2px;
   overflow-y: auto;
+}
+
+.nav-grupo {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--sidebar-muted);
+  font-weight: 700;
+  padding: 12px 20px 4px;
+}
+
+.nav-grupo:first-child {
+  margin-top: -6px;
 }
 
 .sidebar-link {
@@ -78,7 +101,7 @@
 .sidebar-link.active {
   color: #fff;
   background-color: rgba(26, 188, 156, 0.12);
-  border-left-color: var(--accent);
+  border-left-color: var(--accent-ink);
 }
 
 .sidebar-link .material-icons {
@@ -88,7 +111,7 @@
 
 .sidebar-link.active .material-icons {
   opacity: 1;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* Pie del sidebar */
@@ -137,6 +160,7 @@
   border-radius: 8px;
   color: var(--text-muted);
   font-size: 0.85rem;
+  font-family: var(--font-body);
   cursor: pointer;
   transition: all var(--transition);
 }

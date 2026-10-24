@@ -20,6 +20,37 @@ function calcularIVA(base) {
 }
 
 /**
+ * Genera el siguiente numero consecutivo de un documento.
+ *
+ * La secuencia vive en la tabla `consecutivos` y se incrementa con un
+ * upsert atomico (`ultimo = ultimo + 1`) dentro de la transaccion del
+ * documento. Consecuencias frente al COUNT(*) anterior:
+ *  - Dos ventas simultaneas nunca obtienen el mismo numero (el upsert
+ *    bloquea la fila hasta el commit).
+ *  - Borrar o anular un documento no hace retroceder el consecutivo,
+ *    por lo que no se repiten numeros ya usados.
+ *
+ * @param {object} connection - Conexion dentro de la transaccion.
+ * @param {string} [prefijo] - Prefijo del documento (FAC, NC...).
+ * @returns {Promise<string>} Numero con formato PREFIJO-YYYYMM-00001.
+ */
+async function generarNumeroFactura(connection, prefijo = 'FAC') {
+  const ahora = new Date();
+  const periodo = `${ahora.getFullYear()}${String(ahora.getMonth() + 1).padStart(2, '0')}`;
+  const clave = `${prefijo}-${periodo}`;
+
+  await connection.query(
+    `INSERT INTO consecutivos (clave, ultimo) VALUES (?, LAST_INSERT_ID(1))
+       ON DUPLICATE KEY UPDATE ultimo = LAST_INSERT_ID(ultimo + 1)`,
+    [clave]
+  );
+
+  const [filas] = await connection.query('SELECT LAST_INSERT_ID() AS ultimo');
+  const secuencia = Number(filas[0].ultimo);
+  return `${clave}-${String(secuencia).padStart(5, '0')}`;
+}
+
+/**
  * Genera el numero secuencial de una factura con el formato
  * FAC-YYYYMM-XXXXX, donde XXXXX es la siguiente posicion de la
  * secuencia dentro del mes actual. Si no hay facturas en el mes,
@@ -101,6 +132,13 @@ function mapFacturaRow(row) {
     descuento: Number(row.descuento),
     total: Number(row.total),
     estado: row.estado,
+    medioPago: row.medio_pago || 'efectivo',
+    plazoDias: row.plazo_dias === null || row.plazo_dias === undefined ? null : Number(row.plazo_dias),
+    fechaVencimiento: row.fecha_vencimiento
+      ? (row.fecha_vencimiento instanceof Date
+          ? row.fecha_vencimiento.toISOString().slice(0, 10)
+          : String(row.fecha_vencimiento).slice(0, 10))
+      : null,
     cufe: row.cufe || null,
     firmaEstado: row.firma_estado || 'pendiente',
     intentosDian: Number(row.intentos_dian || 0),
@@ -184,6 +222,7 @@ module.exports = {
   escapeCSV,
   mapItemRow,
   mapFacturaRow,
+  generarNumeroFactura,
   mapClienteRow,
   mapProductoRow,
 };

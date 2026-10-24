@@ -38,13 +38,17 @@ const CLIENTES_DEFAULT = [
 
 /**
  * Usuarios de ejemplo del sistema.
- * Las contrasenas se encriptan en tiempo de ejecucion por el
- * script de seed (no deben viajar en texto plano).
+ *
+ * NO se guardan contrasenas aqui: el seed las toma de la variable de entorno
+ * indicada en `passwordEnv` o, si no esta definida, genera una aleatoria y la
+ * muestra una sola vez por consola. Asi el repositorio no contiene credenciales
+ * conocidas (hallazgo C4 de plans/auditoria-seguridad.md) y una instalacion
+ * nueva nunca arranca con la misma clave que otra.
  */
 const USUARIOS_DEFAULT = [
-  { nit: '900.123.456-7', nombre: 'Jhon Henry Romero', email: 'admin@facturaexpress.co', telefono: '+57 300 123 4567', rol: 'admin', password: 'admin123' },
-  { nit: '80.987.654-3', nombre: 'Maria Fernanda Lopez', email: 'vendedor@facturaexpress.co', telefono: '+57 312 555 8899', rol: 'vendedor', password: 'vendedor123' },
-  { nit: '70.555.444-2', nombre: 'Carlos Andres Ruiz', email: 'contador@facturaexpress.co', telefono: '+57 311 444 2211', rol: 'contador', password: 'contador123' },
+  { nit: '900.123.456-7', nombre: 'Jhon Henry Romero', email: 'admin@facturaexpress.co', telefono: '+57 300 123 4567', rol: 'admin', passwordEnv: 'SEED_ADMIN_PASSWORD' },
+  { nit: '80.987.654-3', nombre: 'Maria Fernanda Lopez', email: 'vendedor@facturaexpress.co', telefono: '+57 312 555 8899', rol: 'vendedor', passwordEnv: 'SEED_VENDEDOR_PASSWORD' },
+  { nit: '70.555.444-2', nombre: 'Carlos Andres Ruiz', email: 'contador@facturaexpress.co', telefono: '+57 311 444 2211', rol: 'contador', passwordEnv: 'SEED_CONTADOR_PASSWORD' },
 ];
 
 module.exports = {

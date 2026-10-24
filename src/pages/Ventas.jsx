@@ -5,14 +5,45 @@
  * y finalizar la venta generando una factura electronica.
  */
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/common/Toast';
+import useDialog from '../hooks/useDialog';
 import { formatMoney } from '../utils/formatters';
 import { storageGet, storageRemove } from '../services/storageService';
 import { getProductos, getClientes, createFactura } from '../services/api';
 import { IVA_RATE, ROUTES } from '../utils/constants';
 import './Ventas.css';
+
+/** Medios de pago disponibles en el POS */
+const MEDIOS_PAGO = [
+  { valor: 'efectivo', etiqueta: 'Efectivo', icono: 'payments' },
+  { valor: 'tarjeta', etiqueta: 'Tarjeta', icono: 'credit_card' },
+  { valor: 'transferencia', etiqueta: 'Transfer.', icono: 'account_balance' },
+  { valor: 'credito', etiqueta: 'Credito', icono: 'schedule' },
+];
+
+/** Presets de descuento rapido, en porcentaje */
+const DESCUENTOS_RAPIDOS = [0, 5, 10, 15, 20];
+
+/**
+ * Convierte el texto del campo de descuento a numero.
+ * Acepta coma decimal (uso local) e ignora cualquier otro caracter, para que
+ * el usuario pueda escribir "12,5" o "$5.000" sin que el campo se bloquee.
+ * @param {string} texto
+ * @returns {number}
+ */
+const parsearDescuento = (texto) => {
+  const limpio = String(texto).replace(',', '.').replace(/[^0-9.]/g, '');
+  const valor = Number(limpio);
+  return Number.isFinite(valor) ? valor : 0;
+};
+
+/** Limita un numero a un rango cerrado */
+const limitarNumero = (valor, minimo, maximo) => Math.min(Math.max(valor, minimo), maximo);
+
+/** Formatea un porcentaje con un decimal como maximo y coma decimal */
+const formatearPct = (pct) => Number(Number(pct).toFixed(1)).toString().replace('.', ',');
 
 /**
  * Componente Ventas.
@@ -52,15 +83,6 @@ const Ventas = () => {
   /** Texto de busqueda dentro del modal de seleccion de cliente */
   const [clientModalSearch, setClientModalSearch] = useState('');
 
-  /** Referencia para limpiar timeout al desmontar */
-  const timerRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
   /** Cargar catalogo de productos y clientes desde la API */
   useEffect(() => {
     let mounted = true;
@@ -96,8 +118,26 @@ const Ventas = () => {
   /** Control del modal de seleccion de cliente */
   const [showClientModal, setShowClientModal] = useState(false);
 
-  /** Descuento porcentual aplicado a la venta (0 - 100) */
+  /** Comportamiento accesible del modal de cliente */
+  const clientDialogProps = useDialog(showClientModal, () => setShowClientModal(false));
+
+  /** Descuento porcentual aplicado a la venta (0 - 100). Es la unica fuente de verdad */
   const [descuentoPct, setDescuentoPct] = useState(0);
+
+  /** Medio de pago de la venta (efectivo por defecto) */
+  const [medioPago, setMedioPago] = useState('efectivo');
+
+  /** Plazo en dias de las ventas a credito */
+  const [plazoDias, setPlazoDias] = useState(30);
+
+  /** Numero de la ultima venta registrada, para el aviso no bloqueante */
+  const [ventaReciente, setVentaReciente] = useState(null);
+
+  /** Como se introduce el descuento: 'pct' (porcentaje) o 'monto' (pesos) */
+  const [descuentoModo, setDescuentoModo] = useState('pct');
+
+  /** Texto en curso del campo, para no pelear con el usuario mientras escribe */
+  const [descuentoTexto, setDescuentoTexto] = useState('0');
 
   /**
    * Calcula el subtotal sumando (precio * cantidad) de todos los items.
@@ -123,6 +163,70 @@ const Ventas = () => {
 
   /** Total de la venta */
   const total = baseGravable + iva;
+
+  /** Presets y edicion del descuento comparten estado; el porcentaje manda. */
+
+  /** Aplica un porcentaje desde los botones rapidos */
+  const aplicarDescuentoRapido = (pct) => {
+    setDescuentoModo('pct');
+    setDescuentoTexto(String(pct));
+    setDescuentoPct(pct);
+  };
+
+  /**
+   * Cambia entre porcentaje y pesos conservando el valor economico:
+   * al pasar a pesos se muestra el monto ya calculado y viceversa.
+   */
+  const cambiarModoDescuento = (modo) => {
+    if (modo === descuentoModo) return;
+    setDescuentoModo(modo);
+    setDescuentoTexto(
+      modo === 'monto' ? String(montoDescuento) : String(Number(descuentoPct.toFixed(1)))
+    );
+  };
+
+  /**
+   * Actualiza el descuento desde el campo de texto.
+   * El texto se sanea y se limita en el mismo paso: asi el campo nunca muestra
+   * un valor distinto del que se esta aplicando (antes se podia escribir 150 y
+   * ver aplicado 100 sin que el campo lo dijera).
+   */
+  const editarDescuento = (evento) => {
+    // Solo digitos y un separador decimal
+    let texto = String(evento.target.value).replace(',', '.').replace(/[^0-9.]/g, '');
+    const partes = texto.split('.');
+    if (partes.length > 2) texto = `${partes[0]}.${partes.slice(1).join('')}`;
+
+    const valor = parsearDescuento(texto);
+    let normalizado = texto;
+    let pct;
+
+    if (descuentoModo === 'pct') {
+      // Porcentaje: maximo 100 y como mucho un decimal
+      if (partes[1] && partes[1].length > 1) {
+        normalizado = `${partes[0]}.${partes[1].slice(0, 1)}`;
+      }
+      if (valor > 100) normalizado = '100';
+      pct = limitarNumero(parsearDescuento(normalizado), 0, 100);
+    } else {
+      // Pesos: entero y nunca mas que el subtotal
+      const maximo = Math.max(subtotal, 0);
+      normalizado = partes[0];
+      if (valor > maximo) normalizado = String(maximo);
+      const monto = limitarNumero(parsearDescuento(normalizado), 0, maximo);
+      pct = subtotal > 0 ? (monto / subtotal) * 100 : 0;
+    }
+
+    setDescuentoTexto(normalizado);
+    setDescuentoPct(pct);
+  };
+
+  /** Quita el descuento */
+  const quitarDescuento = () => {
+    setDescuentoModo('pct');
+    setDescuentoTexto('0');
+    setDescuentoPct(0);
+  };
 
   /**
    * Agrega un producto al carrito.
@@ -211,7 +315,12 @@ const Ventas = () => {
           productoId: item.id,
           cantidad: item.cantidad,
         })),
-        descuento: descuentoPct,
+        // En modo pesos el porcentaje puede salir con muchos decimales;
+        // se envia con dos, que es lo que necesita el calculo del servidor.
+        descuento: Number(descuentoPct.toFixed(2)),
+        medioPago,
+        // El plazo solo aplica a las ventas a credito
+        plazoDias: medioPago === 'credito' ? plazoDias : 0,
       });
 
       showToast(`Venta finalizada: ${result.factura.numero}`, 'success');
@@ -219,21 +328,21 @@ const Ventas = () => {
       // Limpiar carrito, cliente y descuento para la siguiente venta
       setCart([]);
       setCliente(null);
+      setDescuentoModo('pct');
+      setDescuentoTexto('0');
       setDescuentoPct(0);
+      setMedioPago('efectivo');
+      setPlazoDias(30);
       storageRemove('cliente_seleccionado');
 
-      // Preguntar si desea ir al historial
-      timerRef.current = setTimeout(() => {
-        if (window.confirm('Venta registrada. Desea ver el historial de facturacion?')) {
-          navigate(ROUTES.FACTURACION);
-        }
-      }, 500);
+      // Aviso no bloqueante: el historial queda a un clic, sin window.confirm
+      setVentaReciente(result.factura.numero);
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
       setIsFinalizing(false);
     }
-  }, [cart, cliente, descuentoPct, showToast, navigate]);
+  }, [cart, cliente, descuentoPct, medioPago, plazoDias, showToast, navigate]);
 
   /**
    * Filtra productos por el termino de busqueda.
@@ -346,7 +455,8 @@ const Ventas = () => {
               onClick={() => {
                 setCart([]);
                 setCliente(null);
-                setDescuentoPct(0);
+                quitarDescuento();
+                setVentaReciente(null);
               }}
               disabled={loading}
             >
@@ -364,42 +474,42 @@ const Ventas = () => {
           </div>
 
           {/* Busqueda de cliente: campos separados de NIT y nombre */}
+          {/* Sin envoltorio intermedio: la rejilla de dos columnas del contenedor
+              debe aplicar a cada campo, igual que en la version Angular */}
           <div className="ventas-client-search">
-            <div className="ventas-client-info">
-              <div className="form-group">
-                <label>NIT del cliente</label>
-                <div className="search-input-wrapper">
-                  <span className="material-icons">badge</span>
-                  <input
-                    type="text"
-                    placeholder="Digite el NIT..."
-                    value={clientNitSearch}
-                    onChange={(e) => setClientNitSearch(e.target.value)}
-                  />
-                </div>
-                {renderClientSuggestions(
-                  filteredClientesNit,
-                  clientNitSearch,
-                  setClientNitSearch
-                )}
+            <div className="form-group">
+              <label>NIT del cliente</label>
+              <div className="search-input-wrapper">
+                <span className="material-icons">badge</span>
+                <input
+                  type="text"
+                  placeholder="Digite el NIT..."
+                  value={clientNitSearch}
+                  onChange={(e) => setClientNitSearch(e.target.value)}
+                />
               </div>
-              <div className="form-group">
-                <label>Nombre del cliente</label>
-                <div className="search-input-wrapper">
-                  <span className="material-icons">person_search</span>
-                  <input
-                    type="text"
-                    placeholder="Digite el nombre..."
-                    value={clientNameSearch}
-                    onChange={(e) => setClientNameSearch(e.target.value)}
-                  />
-                </div>
-                {renderClientSuggestions(
-                  filteredClientesNombre,
-                  clientNameSearch,
-                  setClientNameSearch
-                )}
+              {renderClientSuggestions(
+                filteredClientesNit,
+                clientNitSearch,
+                setClientNitSearch
+              )}
+            </div>
+            <div className="form-group">
+              <label>Nombre del cliente</label>
+              <div className="search-input-wrapper">
+                <span className="material-icons">person_search</span>
+                <input
+                  type="text"
+                  placeholder="Digite el nombre..."
+                  value={clientNameSearch}
+                  onChange={(e) => setClientNameSearch(e.target.value)}
+                />
               </div>
+              {renderClientSuggestions(
+                filteredClientesNombre,
+                clientNameSearch,
+                setClientNameSearch
+              )}
             </div>
           </div>
 
@@ -463,6 +573,31 @@ const Ventas = () => {
               </div>
             )}
           </div>
+
+          {/* Aviso de la venta recien registrada (sustituye al confirm) */}
+          {ventaReciente && (
+            <div className="venta-reciente" role="status">
+              <span className="material-icons">check_circle</span>
+              <span>
+                Venta <strong className="font-mono">{ventaReciente}</strong> registrada.
+              </span>
+              <button
+                type="button"
+                className="venta-reciente-link"
+                onClick={() => navigate(ROUTES.FACTURACION)}
+              >
+                Ver historial
+              </button>
+              <button
+                type="button"
+                className="venta-reciente-close"
+                onClick={() => setVentaReciente(null)}
+                aria-label="Ocultar aviso"
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+          )}
 
           {/* Tabla de items en el carrito */}
           <div className="cart-table-container">
@@ -532,31 +667,96 @@ const Ventas = () => {
 
         {/* Panel derecho: resumen de pago */}
         <div className="payment-panel">
-          <h3 className="payment-title">Resumen de Pago</h3>
+          <h2 className="payment-title">Resumen de Pago</h2>
 
           <div className="payment-rows">
             <div className="payment-row">
               <span>Subtotal</span>
               <span className="font-mono">{formatMoney(subtotal)}</span>
             </div>
-            <div className="payment-row discount-input">
-              <label htmlFor="descuento-venta">Descuento (%)</label>
-              <input
-                id="descuento-venta"
-                type="number"
-                min="0"
-                max="100"
-                step="1"
-                value={descuentoPct}
-                onChange={(e) =>
-                  setDescuentoPct(Math.min(Math.max(Number(e.target.value) || 0, 0), 100))
-                }
-                placeholder="0"
-              />
+            {/* Descuento: presets, entrada en % o en pesos y equivalencia */}
+            <div className="discount-block">
+              <div className="discount-head">
+                <span className="discount-label" id="descuento-etiqueta">
+                  Descuento
+                </span>
+                <div className="discount-modes" role="group" aria-label="Forma del descuento">
+                  <button
+                    type="button"
+                    className={`discount-mode ${descuentoModo === 'pct' ? 'active' : ''}`}
+                    onClick={() => cambiarModoDescuento('pct')}
+                    aria-pressed={descuentoModo === 'pct'}
+                    title="Descuento en porcentaje"
+                  >
+                    %
+                  </button>
+                  <button
+                    type="button"
+                    className={`discount-mode ${descuentoModo === 'monto' ? 'active' : ''}`}
+                    onClick={() => cambiarModoDescuento('monto')}
+                    aria-pressed={descuentoModo === 'monto'}
+                    title="Descuento en pesos"
+                  >
+                    $
+                  </button>
+                </div>
+              </div>
+
+              <div className="discount-chips" role="group" aria-label="Descuentos rapidos">
+                {DESCUENTOS_RAPIDOS.map((pct) => (
+                  <button
+                    type="button"
+                    key={pct}
+                    className={`discount-chip ${
+                      descuentoModo === 'pct' && descuentoPct === pct ? 'active' : ''
+                    }`}
+                    onClick={() => aplicarDescuentoRapido(pct)}
+                    aria-pressed={descuentoModo === 'pct' && descuentoPct === pct}
+                  >
+                    {pct}%
+                  </button>
+                ))}
+              </div>
+
+              <div className="discount-field">
+                <input
+                  id="descuento-venta"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={descuentoTexto}
+                  onChange={editarDescuento}
+                  onFocus={(evento) => evento.target.select()}
+                  disabled={cart.length === 0}
+                  aria-describedby="descuento-ayuda"
+                  placeholder="0"
+                />
+                <span className="discount-unit">{descuentoModo === 'pct' ? '%' : 'COP'}</span>
+                {descuentoPct > 0 && (
+                  <button
+                    type="button"
+                    className="discount-clear"
+                    onClick={quitarDescuento}
+                    title="Quitar descuento"
+                    aria-label="Quitar descuento"
+                  >
+                    <span className="material-icons">close</span>
+                  </button>
+                )}
+              </div>
+
+              <p className="discount-help" id="descuento-ayuda">
+                {cart.length === 0
+                  ? 'Agrega productos para aplicar un descuento'
+                  : descuentoModo === 'monto'
+                    ? `Equivale al ${formatearPct(descuentoPct)}% del subtotal`
+                    : 'Se aplica al subtotal, antes del IVA'}
+              </p>
             </div>
+
             {montoDescuento > 0 && (
               <div className="payment-row discount">
-                <span>Descuento ({descuentoPct}%)</span>
+                <span>Descuento ({formatearPct(descuentoPct)}%)</span>
                 <span className="font-mono">-{formatMoney(montoDescuento)}</span>
               </div>
             )}
@@ -564,6 +764,44 @@ const Ventas = () => {
               <span>IVA (19%)</span>
               <span className="font-mono">{formatMoney(iva)}</span>
             </div>
+          </div>
+
+          {/* Medio de pago: queda registrado en la factura */}
+          <div className="payment-methods-block">
+            <span className="payment-methods-label" id="medio-pago-etiqueta">
+              Medio de pago
+            </span>
+            <div className="payment-methods" role="group" aria-labelledby="medio-pago-etiqueta">
+              {MEDIOS_PAGO.map((medio) => (
+                <button
+                  key={medio.valor}
+                  type="button"
+                  className={`payment-method ${medioPago === medio.valor ? 'active' : ''}`}
+                  onClick={() => setMedioPago(medio.valor)}
+                  aria-pressed={medioPago === medio.valor}
+                >
+                  <span className="material-icons">{medio.icono}</span>
+                  <span>{medio.etiqueta}</span>
+                </button>
+              ))}
+            </div>
+            {medioPago === 'credito' && (
+              <div className="payment-term">
+                <label htmlFor="plazo-dias">Plazo</label>
+                <input
+                  id="plazo-dias"
+                  type="number"
+                  min="1"
+                  max="365"
+                  inputMode="numeric"
+                  value={plazoDias}
+                  onChange={(evento) =>
+                    setPlazoDias(limitarNumero(Number(evento.target.value) || 0, 1, 365))
+                  }
+                />
+                <span>dias</span>
+              </div>
+            )}
           </div>
 
           <div className="payment-divider" />
@@ -578,7 +816,7 @@ const Ventas = () => {
           </button>
 
           <p className="payment-note">
-            Genera XML y PDF automaticamente
+            Comprobante interno de demostracion (sin validez DIAN)
           </p>
         </div>
       </div>
@@ -586,7 +824,7 @@ const Ventas = () => {
       {/* Modal de seleccion de cliente */}
       {showClientModal && (
         <div className="modal-overlay open" onClick={() => setShowClientModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" {...clientDialogProps} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Seleccionar Cliente</h3>
             </div>

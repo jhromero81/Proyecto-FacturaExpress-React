@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import useDialog from '../../hooks/useDialog';
 import { ROUTES } from '../../utils/constants';
 import './LogoutModal.css';
 
@@ -20,6 +21,9 @@ const LogoutModal = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const timerRef = useRef(null);
+
+  /** Foco atrapado, Escape y scroll bloqueado mientras el modal esta abierto */
+  const dialogProps = useDialog(isOpen, onClose);
 
   // Limpiar timeout al desmontar
   useEffect(() => {
@@ -54,7 +58,7 @@ const LogoutModal = ({ isOpen, onClose }) => {
 
   return (
     <div className={`modal-overlay ${isOpen ? 'open' : ''}`} onClick={onClose}>
-      <div className="logout-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="logout-modal" {...dialogProps} onClick={(e) => e.stopPropagation()}>
         {/* Encabezado con gradiente oscuro */}
         <div className="logout-header">
           <span className="material-icons logout-header-icon">exit_to_app</span>
@@ -77,7 +81,7 @@ const LogoutModal = ({ isOpen, onClose }) => {
             </div>
             <div className="session-row">
               <span className="session-label">Rol</span>
-              <span className="session-value">{user?.rol || 'N/A'}</span>
+              <span className="session-value">{user?.rolNombre || user?.rol || 'N/A'}</span>
             </div>
             <div className="session-row">
               <span className="session-label">Sesion activa</span>

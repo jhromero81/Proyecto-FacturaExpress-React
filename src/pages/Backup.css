@@ -1,51 +1,81 @@
 /**
- * Backup.css
- * Estilos del modulo de respaldos y restauracion.
+ * features/admin/backup.component.css
+ * Estilos del modulo de respaldos (reemplaza Backup.css de React).
  */
 
+/* Panel de accion principal con gradiente teal */
 .backup-hero {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  background: linear-gradient(135deg, var(--sidebar-bg), #162230);
-  color: #fff;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dk) 100%);
   border-radius: 12px;
-  padding: 24px;
+  padding: 24px 28px;
   margin-bottom: 24px;
-  flex-wrap: wrap;
+  color: var(--accent-on);
 }
 
 .backup-hero-info {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
-  flex: 1;
-  min-width: 260px;
 }
 
 .backup-icon {
-  font-size: 42px;
-  color: var(--accent);
+  font-size: 42px !important;
+  opacity: 0.9;
 }
 
-.backup-hero-info h3 {
-  font-size: 1.15rem;
+.backup-hero h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
   margin-bottom: 4px;
 }
 
-.backup-hero-info p {
+.backup-hero p {
   font-size: 0.85rem;
-  color: #b0bec5;
+  /* El hero tiene fondo teal: el parrafo hereda su tinta (--accent-on),
+     no el gris de la pagina, que sobre teal queda en 1:1 */
+  color: inherit;
+  max-width: 520px;
 }
 
 .backup-hero .btn-teal {
-  display: flex;
+  /* Boton oscuro sobre el hero teal: usa los tokens del sidebar para que la
+     tinta siga siendo legible en los tres temas (en alto contraste el texto
+     negro del boton teal desaparecia sobre este fondo) */
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border: none;
+  border-radius: 8px;
+  height: 44px;
+  padding: 0 22px;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
   white-space: nowrap;
+  transition: all var(--transition);
 }
 
+.backup-hero .btn-teal:hover:not(:disabled) {
+  background-color: #000;
+}
+
+.backup-hero .btn-teal:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.backup-hero .btn-teal .material-icons {
+  font-size: 18px;
+}
+
+/* Acciones por fila */
 .backup-actions {
   display: flex;
   gap: 6px;
@@ -71,34 +101,35 @@
 
 .action-btn:hover:not(:disabled) {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .action-btn.restore:hover:not(:disabled) {
-  border-color: var(--warning);
-  color: var(--warning);
+  border-color: var(--info);
+  color: var(--info-ink);
 }
 
 .action-btn.danger:hover:not(:disabled) {
   border-color: var(--danger);
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 
 .action-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
+/* Nota inferior */
 .backup-note {
   margin-top: 16px;
   font-size: 0.8rem;
   color: var(--text-muted);
-  text-align: center;
+  max-width: 640px;
 }
 
 @media (max-width: 768px) {
   .backup-hero {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
   }
 }

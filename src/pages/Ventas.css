@@ -1,13 +1,9 @@
 /**
- * Ventas.css
- * Estilos del modulo de ventas / punto de venta.
- * Incluye layout de dos paneles, carrito, controles de cantidad
- * y panel de pago oscuro.
+ * features/ventas/nueva-venta.component.css
+ * Estilos del punto de venta: layout de dos paneles, carrito con
+ * controles de cantidad y panel de pago oscuro (reemplaza Ventas.css).
  */
 
-/* ============================
-   LAYOUT DE VENTAS
-   ============================ */
 .ventas-layout {
   display: grid;
   grid-template-columns: 1fr 320px;
@@ -32,13 +28,45 @@
 
 .ventas-actions .btn-teal,
 .ventas-actions .btn-outline-accent {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
   gap: 8px;
+}
+
+.ventas-actions .btn-teal {
+  background-color: var(--accent);
+  color: var(--accent-on);
+  border: none;
+}
+
+.ventas-actions .btn-teal:hover:not(:disabled) {
+  background-color: var(--accent);
+}
+
+.ventas-actions .btn-outline-accent {
+  background: transparent;
+  color: var(--accent-ink);
+  border: 1.5px solid var(--accent);
+}
+
+.ventas-actions .btn-outline-accent:hover:not(:disabled) {
+  background-color: rgba(26, 188, 156, 0.08);
 }
 
 .ventas-actions .material-icons {
   font-size: 18px;
+}
+
+.ventas-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Info del cliente */
@@ -50,6 +78,9 @@
 
 /* Busqueda de cliente con autocompletado */
 .ventas-client-search {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
   position: relative;
 }
 
@@ -64,87 +95,12 @@
   position: relative;
 }
 
-.search-input-wrapper {
-  display: flex;
-  align-items: center;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  padding: 0 14px;
-  transition: border-color var(--transition);
-}
-
-.search-input-wrapper:focus-within {
-  border-color: var(--accent);
-}
-
-.search-input-wrapper .material-icons {
-  color: var(--text-muted);
-  margin-right: 10px;
-}
-
-.search-input-wrapper input {
-  flex: 1;
-  border: none;
-  outline: none;
-  padding: 12px 0;
-  font-size: 0.9rem;
-  font-family: var(--font-body);
-  color: var(--text-dark);
-  background: transparent;
-}
-
-/* Sugerencias de busqueda */
-.search-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: var(--shadow-md);
-  z-index: 10;
-  max-height: 200px;
-  overflow-y: auto;
-  margin-top: 4px;
-}
-
-.suggestion-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 10px 14px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background-color var(--transition);
-}
-
-.suggestion-item:hover {
-  background-color: rgba(26, 188, 156, 0.08);
-}
-
-.suggestion-name {
-  font-size: 0.88rem;
-  color: var(--text-dark);
-}
-
-.suggestion-price {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--accent);
-}
-
-/* ============================
-   TABLA DEL CARRITO
-   ============================ */
 .cart-table-container {
   background: var(--card-bg);
   border-radius: 12px;
   border: 1px solid var(--border);
   overflow: hidden;
+  transition: background-color var(--transition), border-color var(--transition);
 }
 
 .empty-cart {
@@ -165,7 +121,7 @@
   flex-direction: column;
 }
 
-.product-name {
+.product-name-cell .product-name {
   font-weight: 600;
   font-size: 0.88rem;
   color: var(--text-dark);
@@ -195,13 +151,14 @@
   justify-content: center;
   font-size: 0.85rem;
   font-weight: 700;
+  font-family: var(--font-body);
   color: var(--text-dark);
   transition: all var(--transition);
 }
 
 .qty-btn:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .qty-btn .material-icons {
@@ -210,7 +167,7 @@
 
 .qty-btn.delete-btn {
   border-color: transparent;
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 
 .qty-btn.delete-btn:hover {
@@ -232,11 +189,16 @@
    ============================ */
 .payment-panel {
   background: var(--sidebar-bg);
+  /* Panel oscuro: los tokens de texto se redefinen para ese fondo */
+  --text-muted: var(--sidebar-text);
+  --text-soft: var(--sidebar-text);
+  --text-dark: #ffffff;
   border-radius: 16px;
   padding: 28px;
   color: #fff;
   position: sticky;
   top: calc(var(--topbar-h) + 24px);
+  transition: background-color var(--transition);
 }
 
 .payment-title {
@@ -255,13 +217,154 @@
 .payment-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 0.88rem;
   color: var(--text-muted);
 }
 
 .payment-row.discount {
-  color: var(--danger);
+  color: var(--danger-ink);
 }
+
+/* Bloque de descuento: presets, entrada en % o pesos y equivalencia */
+.discount-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.discount-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.discount-label {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.discount-modes {
+  display: flex;
+  gap: 4px;
+}
+
+.discount-mode {
+  width: 30px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.discount-mode:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.discount-mode.active {
+  background-color: rgba(26, 188, 156, 0.18);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.discount-chips {
+  display: flex;
+  gap: 6px;
+}
+
+.discount-chip {
+  flex: 1;
+  height: 28px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.discount-chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.discount-chip.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on);
+  font-weight: 700;
+}
+
+.discount-field {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 8px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  transition: border-color var(--transition);
+}
+
+.discount-field:focus-within {
+  border-color: var(--accent);
+}
+
+.discount-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 6px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.discount-field input:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.discount-unit {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.discount-clear {
+  display: flex;
+  padding-left: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.discount-clear:hover {
+  color: var(--danger-ink);
+}
+
+.discount-clear .material-icons {
+  font-size: 16px;
+}
+
+.discount-help {
+  font-size: 0.72rem;
+  color: var(--text-soft);
+}
+
 
 .payment-divider {
   height: 1px;
@@ -284,15 +387,14 @@
 .total-val {
   font-size: 1.5rem;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
-/* Boton de finalizar */
 .btn-finalizar {
   width: 100%;
   padding: 16px;
   background: linear-gradient(135deg, var(--accent), var(--accent-dk));
-  color: #fff;
+  color: var(--accent-on);
   border: none;
   border-radius: 10px;
   font-size: 1rem;
@@ -303,9 +405,14 @@
   transition: opacity var(--transition), transform 0.15s ease;
 }
 
-.btn-finalizar:hover {
+.btn-finalizar:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-1px);
+}
+
+.btn-finalizar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .payment-note {
@@ -322,6 +429,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 12px;
 }
 
 .client-option {
@@ -348,7 +458,7 @@
 
 .client-option .material-icons {
   font-size: 28px;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .client-option-info {
@@ -378,4 +488,128 @@
   .payment-panel {
     position: static;
   }
+}
+
+/* Medio de pago: cuatro opciones, sin campo de texto */
+.payment-methods-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.payment-methods-label {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.payment-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.payment-method {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.payment-method .material-icons {
+  font-size: 16px;
+}
+
+.payment-method:hover {
+  border-color: var(--accent);
+  color: var(--accent-on-dark);
+}
+
+.payment-method.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on);
+  font-weight: 700;
+}
+
+/* Plazo de las ventas a credito */
+.payment-term {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.payment-term input {
+  width: 70px;
+  height: 30px;
+  padding: 0 8px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #fff;
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.payment-term input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Aviso de venta registrada: sustituye al confirm nativo del navegador */
+.venta-reciente {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background-color: rgba(26, 188, 156, 0.1);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: var(--text-dark);
+}
+
+.venta-reciente .material-icons {
+  font-size: 18px;
+  color: var(--accent-ink);
+}
+
+.venta-reciente-link {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--accent-ink);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.venta-reciente-close {
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.venta-reciente-close .material-icons {
+  font-size: 16px;
+  color: inherit;
 }

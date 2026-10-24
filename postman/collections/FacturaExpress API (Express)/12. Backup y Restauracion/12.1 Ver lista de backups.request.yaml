@@ -11,4 +11,5 @@ scripts:
           pm.expect(pm.response.json().backups).to.be.an('array');
       });
     language: text/javascript
+examples: .resources/12.1 Ver lista de backups.resources/examples
 order: 1000

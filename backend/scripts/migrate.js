@@ -90,6 +90,10 @@ async function main() {
         ['firma_estado', 'VARCHAR(20) NOT NULL DEFAULT \'pendiente\''],
         ['intentos_dian', 'INT NOT NULL DEFAULT 0'],
         ['correo_enviado', 'TINYINT(1) NOT NULL DEFAULT 0'],
+        // Fase 1: medio de pago y vencimiento de las ventas a credito
+        ['medio_pago', "ENUM('efectivo','tarjeta','transferencia','credito') NOT NULL DEFAULT 'efectivo'"],
+        ['plazo_dias', 'INT UNSIGNED NULL'],
+        ['fecha_vencimiento', 'DATE NULL'],
       ];
       for (const [columna, definicion] of columnasFacturas) {
         if (!(await existeColumna(connection, 'facturas', columna))) {
@@ -127,6 +131,17 @@ async function main() {
              NOT NULL DEFAULT 'pendiente'`
         );
         console.log('[migrate] ENUM de estado verificado.');
+      }
+
+      // ---- Estado 'anulada' para las notas credito ----
+      const tipoEstado = await tipoColumna(connection, 'facturas', 'estado');
+      if (tipoEstado && tipoEstado.includes('pendiente') && !tipoEstado.includes('anulada')) {
+        await connection.query(
+          `ALTER TABLE facturas
+             MODIFY COLUMN estado ENUM('pendiente','enviada','rechazada','anulada')
+             NOT NULL DEFAULT 'pendiente'`
+        );
+        console.log('[migrate] Estado "anulada" agregado al ENUM de facturas.');
       }
     }
 
@@ -170,6 +185,30 @@ async function main() {
           CONSTRAINT fk_reportes_usuario
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE SET NULL
         ) ENGINE=InnoDB`,
+      consecutivos: `
+        CREATE TABLE IF NOT EXISTS consecutivos (
+          clave      VARCHAR(40) NOT NULL PRIMARY KEY,
+          ultimo     INT UNSIGNED NOT NULL DEFAULT 0,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                     ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB`,
+      notas_credito: `
+        CREATE TABLE IF NOT EXISTS notas_credito (
+          id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+          factura_id INT UNSIGNED NOT NULL,
+          numero     VARCHAR(30)  NOT NULL UNIQUE,
+          fecha      DATETIME     NOT NULL,
+          motivo     VARCHAR(200) NOT NULL,
+          subtotal   DECIMAL(14,2) NOT NULL,
+          iva        DECIMAL(14,2) NOT NULL,
+          total      DECIMAL(14,2) NOT NULL,
+          usuario_id INT UNSIGNED NULL,
+          created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT fk_nc_factura
+            FOREIGN KEY (factura_id) REFERENCES facturas (id),
+          CONSTRAINT fk_nc_usuario
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE SET NULL
+        ) ENGINE=InnoDB`,
       backups: `
         CREATE TABLE IF NOT EXISTS backups (
           id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -187,6 +226,25 @@ async function main() {
         await connection.query(ddl);
         console.log(`[migrate] Tabla ${tabla} creada.`);
       }
+    }
+
+    // ---- Consecutivos: continuar donde iban las facturas ya emitidas ----
+    if ((await existeTabla(connection, 'consecutivos')) && (await existeTabla(connection, 'facturas'))) {
+      const [filas] = await connection.query(
+        `SELECT CONCAT('FAC-', DATE_FORMAT(fecha, '%Y%m')) AS clave,
+                MAX(CAST(SUBSTRING_INDEX(numero, '-', -1) AS UNSIGNED)) AS ultimo
+           FROM facturas
+          WHERE numero LIKE 'FAC-%'
+          GROUP BY clave`
+      );
+      for (const fila of filas) {
+        await connection.query(
+          `INSERT INTO consecutivos (clave, ultimo) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE ultimo = GREATEST(ultimo, VALUES(ultimo))`,
+          [fila.clave, Number(fila.ultimo) || 0]
+        );
+      }
+      console.log(`[migrate] Consecutivos sincronizados (${filas.length} prefijo/s).`);
     }
 
     console.log('[migrate] Migracion completada con exito.');

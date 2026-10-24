@@ -10,6 +10,8 @@ const {
   createFactura,
   updateEstadoFactura,
   deleteFactura,
+  anularFactura,
+  getNotasCredito,
   getFacturaPDF,
   getFacturaXML,
   getFacturaCSV,
@@ -19,6 +21,7 @@ const { validate } = require('../middleware/validate');
 const {
   createFacturaValidator,
   updateEstadoFacturaValidator,
+  anularFacturaValidator,
   idValidator,
 } = require('../validators');
 
@@ -34,6 +37,10 @@ router.get('/:id/pdf', idValidator, validate, getFacturaPDF);
 router.get('/:id/xml', idValidator, validate, getFacturaXML);
 router.get('/:id/csv', idValidator, validate, getFacturaCSV);
 router.put('/:id/estado', updateEstadoFacturaValidator, validate, updateEstadoFactura);
+router.get('/:id/notas-credito', idValidator, validate, getNotasCredito);
+router.post('/:id/nota-credito', idValidator, anularFacturaValidator, validate, anularFactura);
+
+// Las facturas no se borran: esta ruta responde 409 y explica la nota credito
 router.delete('/:id', idValidator, validate, deleteFactura);
 
 module.exports = router;

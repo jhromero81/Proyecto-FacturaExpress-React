@@ -16,6 +16,7 @@ import {
 } from '../services/api';
 import { META_VENTAS_MENSUAL } from '../utils/constants';
 import { useToast } from '../components/common/Toast';
+import useDialog from '../hooks/useDialog';
 import './Reportes.css';
 
 /** Periodos disponibles para el reporte */
@@ -82,6 +83,10 @@ const Reportes = () => {
 
   /** Periodo seleccionado al hacer clic en una barra (detalle) */
   const [detailBar, setDetailBar] = useState(null);
+
+  /** Comportamiento accesible de los dos modales de la pagina */
+  const detailDialogProps = useDialog(Boolean(detailBar), () => setDetailBar(null));
+  const historialDialogProps = useDialog(showHistorial, () => setShowHistorial(false));
 
   /** Referencia al contenedor del grafico para posicionar el tooltip */
   const chartRef = useRef(null);
@@ -273,7 +278,7 @@ const Reportes = () => {
       <div className="reportes-content">
         {/* Grafico de barras comparativo */}
         <div className="content-card">
-          <h3 className="card-title">Comparativa de Ventas</h3>
+          <h2 className="card-title">Comparativa de Ventas</h2>
           <div className="chart-container" ref={chartRef}>
             <svg viewBox="0 0 600 280" className="bar-chart">
               {/* Lineas de referencia */}
@@ -406,7 +411,7 @@ const Reportes = () => {
         <div className="reportes-sidebar">
           {/* Productos mas vendidos */}
           <div className="content-card">
-            <h3 className="card-title">Productos Mas Vendidos</h3>
+            <h2 className="card-title">Productos Mas Vendidos</h2>
             <div className="top-products">
               {topProducts.map((p, i) => (
                 <div className="top-product-item" key={p.id}>
@@ -424,7 +429,7 @@ const Reportes = () => {
 
           {/* Meta de ventas mensual */}
           <div className="content-card">
-            <h3 className="card-title">Meta de Ventas</h3>
+            <h2 className="card-title">Meta de Ventas</h2>
             <div className="sales-goal">
               <div className="goal-progress-text">
                 <span className="font-mono goal-percent">{goalProgress}%</span>
@@ -449,7 +454,7 @@ const Reportes = () => {
       {/* Modal de detalle de un periodo del grafico */}
       {detailBar && (
         <div className="modal-overlay open" onClick={() => setDetailBar(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" {...detailDialogProps} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Detalle: Periodo {detailBar.mes}</h3>
             </div>
@@ -501,7 +506,7 @@ const Reportes = () => {
       {/* Modal de historial de reportes */}
       {showHistorial && (
         <div className="modal-overlay open" onClick={() => setShowHistorial(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" {...historialDialogProps} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Historial de Reportes</h3>
             </div>

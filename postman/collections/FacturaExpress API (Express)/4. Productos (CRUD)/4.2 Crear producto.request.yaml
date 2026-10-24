@@ -23,4 +23,5 @@ scripts:
       const json = pm.response.json();
       pm.collectionVariables.set('productoId', json.producto.id);
     language: text/javascript
+examples: .resources/4.2 Crear producto.resources/examples
 order: 2000

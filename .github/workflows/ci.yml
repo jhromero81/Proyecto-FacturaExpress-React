@@ -62,7 +62,19 @@ jobs:
           DB_USER: root
           DB_PASSWORD: root123
           DB_NAME: facturaexpress_apirest
+          # El seed ya no trae contrasenas por defecto: en CI se fijan aqui
+          # para que las pruebas de login de mas abajo sean reproducibles.
+          SEED_ADMIN_PASSWORD: CiAdmin123
+          SEED_VENDEDOR_PASSWORD: CiVendedor123
+          SEED_CONTADOR_PASSWORD: CiContador123
         run: npm run db:setup
+
+      - name: Pruebas de humo de la API (supertest)
+        working-directory: backend
+        env:
+          CORS_ORIGIN: http://localhost:3000
+          JWT_SECRET: secreto_de_prueba_ci
+        run: npm test
 
       - name: Iniciar API y probar endpoints
         working-directory: backend
@@ -95,7 +107,7 @@ jobs:
           # Login y prueba de un endpoint protegido
           TOKEN=$(curl -fsS -X POST http://127.0.0.1:4000/api/auth/login \
             -H "Content-Type: application/json" \
-            -d '{"nit":"900.123.456-7","password":"admin123"}' \
+            -d '{"nit":"900.123.456-7","password":"CiAdmin123"}' \
             | node -pe "JSON.parse(require('fs').readFileSync(0)).token")
 
           curl -fsS http://127.0.0.1:4000/api/clientes \
@@ -104,7 +116,7 @@ jobs:
           # Cookie de sesion httpOnly: el login debe guardarla
           curl -fsS -c cookies.txt -X POST http://127.0.0.1:4000/api/auth/login \
             -H "Content-Type: application/json" \
-            -d '{"nit":"900.123.456-7","password":"admin123"}' > /dev/null
+            -d '{"nit":"900.123.456-7","password":"CiAdmin123"}' > /dev/null
           grep -q "#HttpOnly_.*token" cookies.txt && echo "Cookie httpOnly OK"
           curl -fsS -b cookies.txt http://127.0.0.1:4000/api/clientes > /dev/null \
             && echo "Acceso con cookie OK"
@@ -149,6 +161,15 @@ jobs:
 
       - name: Instalar dependencias
         run: npm ci
+
+      - name: Verificar tokens CSS (paridad con la version Angular)
+        run: npm run check:tokens
+
+      - name: Verificar contraste WCAG AA en los tres temas
+        run: npm run check:contraste
+
+      - name: Pruebas unitarias (formatters y validators)
+        run: npm test
 
       - name: Construir aplicacion
         run: npm run build

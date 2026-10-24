@@ -1,0 +1,15 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/reportes/productos-top?limite=5"
+  method: GET
+  headers:
+    Authorization: Bearer {{token}}
+  queryParams:
+    limite: "5"
+response:
+  statusCode: 200
+  statusText: ""
+  body:
+    type: json
+    content: ""
+order: 1786739975897

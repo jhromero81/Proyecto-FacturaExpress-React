@@ -46,6 +46,12 @@ services:
       DB_NAME: facturaexpress_apirest
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 8h
+      # Contrasenas del seed (opcionales). Si no se definen, el seed genera
+      # aleatorias y las imprime una sola vez en los logs del contenedor:
+      # `docker compose logs api | grep -A4 "Contrasenas generadas"`.
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      SEED_VENDEDOR_PASSWORD: ${SEED_VENDEDOR_PASSWORD:-}
+      SEED_CONTADOR_PASSWORD: ${SEED_CONTADOR_PASSWORD:-}
     # Prepara la base de datos (esquema + datos semilla) y arranca la API
     command: sh -c "node scripts/setupDb.js && node server.js"
     ports:

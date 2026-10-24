@@ -65,7 +65,10 @@ export const validatePhone = (phone) => {
  * @returns {{ valid: boolean, message: string }}
  */
 export const validateRequired = (value, fieldName = 'Este campo') => {
-  if (!value || (typeof value === 'string' && value.trim() === '')) {
+  // Se compara contra null/undefined/cadena vacia en lugar de usar !value:
+  // 0 es un valor valido (stock 0, precio 0 en un campo obligatorio numerico)
+  // y con !value se marcaba como vacio. Misma regla que la version Angular.
+  if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
     return { valid: false, message: `${fieldName} es obligatorio.` };
   }
   return { valid: true, message: '' };

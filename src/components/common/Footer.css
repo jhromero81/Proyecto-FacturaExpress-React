@@ -1,8 +1,12 @@
 /**
  * Footer.css
  * Estilos del pie de pagina global.
+ * Copiado de FacturaExpress-V3 layout.component.css (version Angular).
  */
 
+/* ============================
+   FOOTER
+   ============================ */
 .app-footer {
   position: fixed;
   bottom: 0;
@@ -17,6 +21,10 @@
   padding: 0 32px;
   z-index: 90;
   transition: background-color var(--transition);
+
+  /* El pie tiene fondo oscuro: sus textos se miden contra ese fondo */
+  --text-muted: var(--sidebar-text);
+  --text-dark: #ffffff;
 }
 
 .footer-left {

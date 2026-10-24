@@ -16,7 +16,7 @@ const dotenv = require('dotenv');
 
 const { testConnection } = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
-const { apiLimiter } = require('./middleware/security');
+const { apiLimiter, verificarOrigen } = require('./middleware/security');
 
 // Rutas de cada modulo del sistema
 const authRoutes = require('./routes/auth.routes');
@@ -37,6 +37,15 @@ const app = express();
 const PORT = Number(process.env.PORT || 4000);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
+// Detras de un proxy (nginx de FacturaExpress-V3) se confia en el primer
+// salto para que req.ip sea la IP real del cliente y no la del proxy: sin
+// esto el limite de peticiones se aplica a todos los usuarios por igual.
+// Se activa por variable de entorno y nunca por defecto, porque confiar en
+// X-Forwarded-For cuando la API esta expuesta permite falsificar el origen.
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
+
 // Middlewares globales
 // Helmet: cabeceras HTTP de seguridad (CSP, X-Frame-Options, etc.)
 app.use(helmet());
@@ -44,6 +53,8 @@ app.use(helmet());
 app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
 // Cookie parser: necesaria para leer la cookie httpOnly de sesion
 app.use(cookieParser());
+// Control de origen en peticiones que cambian estado (defensa CSRF)
+app.use(verificarOrigen);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -105,6 +116,10 @@ async function start() {
   }
 }
 
-start();
+// Solo se escucha cuando el archivo se ejecuta directamente. Al importarlo
+// desde las pruebas (supertest) se usa la app sin abrir un puerto ni exigir BD.
+if (require.main === module) {
+  start();
+}
 
 module.exports = app;

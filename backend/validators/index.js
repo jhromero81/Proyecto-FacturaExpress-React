@@ -173,6 +173,25 @@ const createFacturaValidator = [
     .isFloat({ min: 0 })
     .withMessage('El descuento debe ser un numero mayor o igual a 0.')
     .toFloat(),
+  body('medioPago')
+    .optional()
+    .isIn(['efectivo', 'tarjeta', 'transferencia', 'credito'])
+    .withMessage('El medio de pago debe ser efectivo, tarjeta, transferencia o credito.'),
+  body('plazoDias')
+    .optional({ values: 'falsy' })
+    .isInt({ min: 0, max: 365 })
+    .withMessage('El plazo debe ser un numero de dias entre 0 y 365.')
+    .toInt(),
+];
+
+/** Valida la anulacion de una factura con nota credito */
+const anularFacturaValidator = [
+  body('motivo')
+    .isString()
+    .withMessage('El motivo es obligatorio.')
+    .trim()
+    .isLength({ min: 5, max: 200 })
+    .withMessage('El motivo debe tener entre 5 y 200 caracteres.'),
 ];
 
 const updateEstadoFacturaValidator = [
@@ -260,6 +279,7 @@ module.exports = {
   ajusteStockValidator,
   createFacturaValidator,
   updateEstadoFacturaValidator,
+  anularFacturaValidator,
   crearUsuarioValidator,
   actualizarUsuarioValidator,
   toggleActivoValidator,

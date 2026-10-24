@@ -166,22 +166,24 @@ const Configuracion = () => {
             ============================ */}
         {activeSection === 'empresa' && (
           <div className="config-section-card">
-            <h3 className="config-title">
+            <h2 className="config-title">
               <span className="material-icons">business</span>
               Datos de la Empresa
-            </h3>
+            </h2>
             <div className="config-form">
               <div className="form-group">
-                <label>NIT</label>
+                <label htmlFor="config-nit">NIT</label>
                 <input
+                  id="config-nit"
                   type="text"
                   value={config.empresa.nit}
                   onChange={(e) => updateConfig('empresa', 'nit', e.target.value)}
                 />
               </div>
               <div className="form-group">
-                <label>Razon Social</label>
+                <label htmlFor="config-razon-social">Razon Social</label>
                 <input
+                  id="config-razon-social"
                   type="text"
                   value={config.empresa.razonSocial}
                   onChange={(e) =>
@@ -190,8 +192,9 @@ const Configuracion = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Email de Facturacion</label>
+                <label htmlFor="config-email-facturacion">Email de Facturacion</label>
                 <input
+                  id="config-email-facturacion"
                   type="email"
                   value={config.empresa.emailFacturacion}
                   onChange={(e) =>
@@ -200,8 +203,9 @@ const Configuracion = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Telefono</label>
+                <label htmlFor="config-telefono">Telefono</label>
                 <input
+                  id="config-telefono"
                   type="tel"
                   value={config.empresa.telefono}
                   onChange={(e) =>
@@ -223,10 +227,10 @@ const Configuracion = () => {
             ============================ */}
         {activeSection === 'fiscal' && (
           <div className="config-section-card">
-            <h3 className="config-title">
+            <h2 className="config-title">
               <span className="material-icons">verified</span>
               Configuracion Fiscal (DIAN)
-            </h3>
+            </h2>
             <div className="config-form">
               <div className="form-group">
                 <label>Numero de Resolucion DIAN</label>
@@ -278,10 +282,10 @@ const Configuracion = () => {
             ============================ */}
         {activeSection === 'usuarios' && (
           <div className="config-section-card">
-            <h3 className="config-title">
+            <h2 className="config-title">
               <span className="material-icons">admin_panel_settings</span>
               Perfiles de Usuario
-            </h3>
+            </h2>
             <div className="roles-grid">
               {/* Rol Administradores */}
               <div className="role-card">
@@ -323,10 +327,10 @@ const Configuracion = () => {
             ============================ */}
         {activeSection === 'notificaciones' && (
           <div className="config-section-card">
-            <h3 className="config-title">
+            <h2 className="config-title">
               <span className="material-icons">notifications</span>
               Notificaciones
-            </h3>
+            </h2>
             <div className="config-form">
               {/* Toggle: Email */}
               <div className="toggle-row">
@@ -432,10 +436,10 @@ const Configuracion = () => {
             ============================ */}
         {activeSection === 'seguridad' && (
           <div className="config-section-card">
-            <h3 className="config-title">
+            <h2 className="config-title">
               <span className="material-icons">shield</span>
               Seguridad
-            </h3>
+            </h2>
             <div className="config-form">
               {/* Info de seguridad */}
               <div className="security-info-grid">
@@ -493,10 +497,10 @@ const Configuracion = () => {
             ============================ */}
         {activeSection === 'accesibilidad' && (
           <div className="config-section-card">
-            <h3 className="config-title">
+            <h2 className="config-title">
               <span className="material-icons">accessibility_new</span>
               Accesibilidad
-            </h3>
+            </h2>
             <div className="config-form">
               {/* Toggle: Alto contraste */}
               <div className="toggle-row">

@@ -13,6 +13,7 @@ import {
   getUltimasTransacciones,
   getProductosTop,
 } from '../services/api';
+import useDialog from '../hooks/useDialog';
 import './Dashboard.css';
 
 /**
@@ -52,6 +53,9 @@ const Dashboard = () => {
 
   /** Dia seleccionado al hacer clic en una barra (detalle) */
   const [detailBar, setDetailBar] = useState(null);
+
+  /** Comportamiento accesible del modal de detalle */
+  const detailDialogProps = useDialog(Boolean(detailBar), () => setDetailBar(null));
 
   /** Referencia al contenedor del grafico para posicionar el tooltip */
   const chartRef = useRef(null);
@@ -225,8 +229,15 @@ const Dashboard = () => {
       <div className="dashboard-content">
         {/* Grafico de ventas semanales */}
         <div className="content-card chart-card">
-          <h3 className="card-title">Ventas de la Semana</h3>
+          <h2 className="card-title">Ventas de la Semana</h2>
           <div className="chart-container" ref={chartRef}>
+            {/* Sin ventas en la semana el grafico quedaria como ejes sueltos */}
+            {maxChartValue === 0 && (
+              <div className="chart-empty">
+                <span className="material-icons">insights</span>
+                <p>Sin ventas registradas esta semana</p>
+              </div>
+            )}
             <svg viewBox="0 0 600 250" className="weekly-chart">
               {/* Definicion del gradiente de relleno */}
               <defs>
@@ -336,7 +347,7 @@ const Dashboard = () => {
         <div className="dashboard-side">
           {/* Lista de ultimas transacciones */}
           <div className="content-card transactions-card">
-            <h3 className="card-title">Ultimas Transacciones</h3>
+            <h2 className="card-title">Ultimas Transacciones</h2>
             <div className="transactions-list">
               {lastTransactions.length === 0 ? (
                 <div className="empty-state">
@@ -360,7 +371,7 @@ const Dashboard = () => {
 
           {/* Productos mas vendidos */}
           <div className="content-card products-card">
-            <h3 className="card-title">Productos Mas Vendidos</h3>
+            <h2 className="card-title">Productos Mas Vendidos</h2>
             <div className="top-products">
               {topProducts.length === 0 ? (
                 <div className="empty-state">
@@ -388,7 +399,7 @@ const Dashboard = () => {
       {/* Modal de detalle de un dia del grafico */}
       {detailBar && (
         <div className="modal-overlay open" onClick={() => setDetailBar(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" {...detailDialogProps} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Detalle del dia {detailBar.day}</h3>
             </div>

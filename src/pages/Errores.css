@@ -1,6 +1,6 @@
 /**
- * Errores.css
- * Estilos del modulo de errores del sistema.
+ * features/admin/errores.component.css
+ * Estilos del modulo de errores del sistema (reemplaza Errores.css).
  */
 
 .errores-kpis {
@@ -18,20 +18,20 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
-  transition: box-shadow var(--transition);
+  transition: box-shadow var(--transition), background-color var(--transition);
 }
 
 .kpi-card:hover {
   box-shadow: var(--shadow-md);
 }
 
-.kpi-card .material-icons {
-  font-size: 34px;
+.kpi-card > .material-icons {
+  font-size: 34px !important;
 }
 
-.kpi-card.total .material-icons { color: var(--warning); }
-.kpi-card.open .material-icons { color: var(--danger); }
-.kpi-card.resolved .material-icons { color: var(--success); }
+.kpi-card.total .material-icons { color: var(--warning-ink); }
+.kpi-card.open .material-icons { color: var(--danger-ink); }
+.kpi-card.resolved .material-icons { color: var(--success-ink); }
 
 .kpi-card > div {
   display: flex;
@@ -60,16 +60,6 @@
   gap: 10px;
 }
 
-.filter-select {
-  padding: 8px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-family: var(--font-body);
-  color: var(--text-dark);
-  background-color: var(--card-bg);
-}
-
 .tipo-badge {
   display: inline-block;
   padding: 3px 12px;
@@ -77,17 +67,17 @@
   font-size: 0.75rem;
   font-weight: 600;
   background-color: rgba(52, 152, 219, 0.12);
-  color: var(--info);
+  color: var(--info-ink);
 }
 
 .tipo-badge.dian {
   background-color: rgba(231, 76, 60, 0.12);
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 
 .tipo-badge.correo {
   background-color: rgba(243, 156, 18, 0.12);
-  color: var(--warning);
+  color: var(--warning-ink);
 }
 
 .tipo-badge.bd {
@@ -98,11 +88,6 @@
 .error-msg {
   max-width: 420px;
   font-size: 0.85rem;
-}
-
-.btn-sm {
-  padding: 6px 14px;
-  font-size: 0.78rem;
 }
 
 @media (max-width: 768px) {

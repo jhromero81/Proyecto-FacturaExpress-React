@@ -1,0 +1,23 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/clientes"
+  method: POST
+  headers:
+    Content-Type: application/json
+    Authorization: Bearer {{token}}
+  body:
+    type: text
+    content: |-
+      {
+        "identificacion": "902.222.333-9",
+        "nombre": "Cliente Postman Test",
+        "email": "cliente_test@correo.com",
+        "telefono": "3001234567"
+      }
+response:
+  statusCode: 200
+  statusText: ""
+  body:
+    type: json
+    content: ""
+order: 1786740771239

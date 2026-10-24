@@ -28,4 +28,5 @@ scripts:
 
       pm.collectionVariables.set('usuarioId', json.usuario.id);
     language: text/javascript
+examples: .resources/9.2 Crear usuario VENDEDOR.resources/examples
 order: 2000

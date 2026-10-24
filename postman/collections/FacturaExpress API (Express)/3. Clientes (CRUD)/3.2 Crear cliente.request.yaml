@@ -23,4 +23,5 @@ scripts:
       const json = pm.response.json();
       pm.collectionVariables.set('clienteId', json.cliente.id);
     language: text/javascript
+examples: .resources/3.2 Crear cliente.resources/examples
 order: 2000

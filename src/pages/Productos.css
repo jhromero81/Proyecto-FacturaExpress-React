@@ -1,6 +1,7 @@
 /**
- * Productos.css
- * Estilos del modulo de inventario de productos.
+ * features/productos/productos.component.css
+ * Estilos del inventario de productos (reemplaza Productos.css).
+ * Las clases compartidas viven en los estilos globales.
  */
 
 .productos-toolbar {
@@ -13,46 +14,29 @@
 }
 
 .productos-toolbar .btn-teal {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  height: 40px;
+  padding: 0 20px;
   white-space: nowrap;
-}
-
-.search-wrapper {
-  display: flex;
-  align-items: center;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  padding: 0 14px;
-  min-width: 300px;
-  transition: border-color var(--transition);
-}
-
-.search-wrapper:focus-within {
-  border-color: var(--accent);
-}
-
-.search-wrapper .material-icons {
-  color: var(--text-muted);
-  margin-right: 8px;
-}
-
-.search-wrapper input {
+  background-color: var(--accent);
+  color: var(--accent-on);
   border: none;
-  outline: none;
-  padding: 10px 0;
-  font-size: 0.88rem;
-  font-family: var(--font-body);
-  color: var(--text-dark);
-  background: transparent;
-  width: 100%;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: all var(--transition);
 }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
+.productos-toolbar .btn-teal:hover {
+  background-color: var(--accent);
+}
+
+.productos-toolbar .material-icons {
+  font-size: 18px;
 }
 
 .product-actions {
@@ -80,12 +64,12 @@
 
 .action-btn:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .action-btn.danger:hover {
   border-color: var(--danger);
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 
 .stock-badge {
@@ -96,12 +80,12 @@
   font-weight: 700;
   font-family: var(--font-mono);
   background-color: rgba(39, 174, 96, 0.12);
-  color: var(--success);
+  color: var(--success-ink);
 }
 
 .stock-badge.low {
   background-color: rgba(231, 76, 60, 0.12);
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 
 .stock-current {
@@ -115,11 +99,7 @@
     align-items: stretch;
   }
 
-  .search-wrapper {
+  .productos-toolbar .search-wrapper {
     min-width: auto;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
   }
 }

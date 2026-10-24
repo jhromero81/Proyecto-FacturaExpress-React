@@ -8,6 +8,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import useDebounce from '../hooks/useDebounce';
 import { useToast } from '../components/common/Toast';
+import useDialog from '../hooks/useDialog';
 import { validateUsuario } from '../utils/validators';
 import { PERFILES_USUARIO } from '../utils/constants';
 import { getUsuarios, createUsuario, updateUsuario, toggleUsuarioActivo, deleteUsuario } from '../services/api';
@@ -49,6 +50,9 @@ const Usuarios = () => {
 
   /** Control del modal */
   const [showModal, setShowModal] = useState(false);
+
+  /** Comportamiento accesible del modal (foco, Escape, scroll) */
+  const dialogProps = useDialog(showModal, () => setShowModal(false));
 
   /** Usuario en edicion (null = crear) */
   const [editingId, setEditingId] = useState(null);
@@ -199,6 +203,7 @@ const Usuarios = () => {
         <div className="toolbar-actions">
           <select
             className="rol-filter"
+            aria-label="Filtrar por rol"
             value={rolFilter}
             onChange={(e) => setRolFilter(e.target.value)}
           >
@@ -302,7 +307,7 @@ const Usuarios = () => {
         className={`modal-overlay ${showModal ? 'open' : ''}`}
         onClick={() => setShowModal(false)}
       >
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-content" {...dialogProps} onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <h3>{editingId ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
           </div>

@@ -1,7 +1,8 @@
 /**
- * Dashboard.css
- * Estilos del panel principal (Dashboard).
- * Incluye tarjetas KPI, grafico SVG y lista de transacciones.
+ * features/dashboard/dashboard.component.css
+ * Estilos del panel principal: tarjetas KPI, grafico SVG semanal,
+ * lista de transacciones y productos mas vendidos (reemplaza
+ * Dashboard.css de la version React).
  */
 
 /* ============================
@@ -14,7 +15,6 @@
   margin-bottom: 24px;
 }
 
-/* Tarjeta de estadistica individual */
 .stat-card {
   background: var(--card-bg);
   border-radius: 12px;
@@ -38,7 +38,7 @@
 }
 
 .stat-icon {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: 24px;
 }
 
@@ -55,11 +55,11 @@
 }
 
 .stat-variacion.positive {
-  color: var(--success);
+  color: var(--success-ink);
 }
 
 .stat-variacion.negative {
-  color: var(--danger);
+  color: var(--danger-ink);
 }
 
 .stat-value {
@@ -128,7 +128,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   background-color: rgba(26, 188, 156, 0.12);
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 700;
   font-size: 0.8rem;
 }
@@ -164,7 +164,6 @@
   height: auto;
 }
 
-/* Barras interactivas */
 .chart-bar-group {
   cursor: pointer;
 }
@@ -204,7 +203,6 @@
   font-weight: 600;
 }
 
-/* Tooltip del grafico */
 .chart-tooltip {
   position: absolute;
   pointer-events: none;
@@ -246,7 +244,7 @@
 .chart-tooltip-hint {
   margin-top: 6px;
   font-size: 0.7rem;
-  color: var(--accent);
+  color: var(--accent-ink);
   text-align: center;
   border-top: 1px solid var(--border);
   padding-top: 6px;
@@ -269,7 +267,7 @@
 }
 
 .report-detail-block .material-icons {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: 22px;
 }
 
@@ -299,7 +297,7 @@
 }
 
 .report-detail-variation strong {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .report-detail-best {
@@ -310,7 +308,7 @@
   margin-top: 12px;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .report-detail-best .material-icons {
@@ -342,7 +340,7 @@
 }
 
 .tx-icon {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: 22px;
 }
 
@@ -369,7 +367,6 @@
   color: var(--text-dark);
 }
 
-/* Estado vacio */
 .empty-state {
   text-align: center;
   padding: 40px 20px;
@@ -400,4 +397,24 @@
   .kpi-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Estado vacio del grafico semanal: evita mostrar ejes sin datos */
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+}
+
+.chart-empty .material-icons {
+  font-size: 40px;
+  opacity: 0.35;
 }

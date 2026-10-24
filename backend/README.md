@@ -186,7 +186,7 @@ La estructura de respuesta es consistente:
 
 ```json
 // Body de entrada
-{ "nit": "900.123.456-7", "password": "admin123" }
+{ "nit": "900.123.456-7", "password": "<la definida en SEED_ADMIN_PASSWORD o la generada por el seed>" }
 
 // Respuesta 200 OK (además fija la cookie httpOnly "token")
 {
@@ -281,19 +281,21 @@ La estructura de respuesta es consistente:
 | ------ | ---------------------- | --------- | ------------------------------------------------ |
 | GET    | `/api/facturas`        | Sí        | Lista facturas con filtros de estado y búsqueda. |
 | GET    | `/api/facturas/:id`    | Sí        | Factura completa con sus items.                  |
-| POST   | `/api/facturas`        | Sí        | **Finaliza una venta** y genera la factura electrónica. |
-| PUT    | `/api/facturas/:id/estado` | Sí    | Actualiza el estado DIAN de una factura.         |
-| DELETE | `/api/facturas/:id`    | Sí        | Anula una factura (estado `anulada`).            |
+| POST   | `/api/facturas`        | Sí        | **Finaliza una venta** y genera la factura.      |
+| PUT    | `/api/facturas/:id/estado` | Sí    | Cambia el estado de envío (rechaza facturas anuladas). |
+| POST   | `/api/facturas/:id/nota-credito` | Sí | **Anula la factura** con una nota crédito y devuelve el stock. |
+| GET    | `/api/facturas/:id/notas-credito` | Sí | Notas crédito asociadas a la factura.      |
+| DELETE | `/api/facturas/:id`    | Sí        | Responde **409**: las facturas no se borran, se anulan con nota crédito. |
 | GET    | `/api/facturas/:id/xml` | Sí       | Genera el XML de la factura (formato DIAN).      |
 | GET    | `/api/facturas/:id/csv` | Sí       | Genera el CSV con datos de la factura.           |
 
 **`POST /api/facturas` — finalización de venta.** Lógica de negocio materializada:
 
 1. Valida que el `clienteId` exista y esté activo.
-2. Valida los items y sus cantidades contra el catálogo y el **stock disponible**.
-3. Calcula **subtotal, IVA (19%) y total** del lado del servidor (no confía en el cliente).
-4. Genera el número secuencial `FAC-YYYYMM-XXXXX`.
-5. Inserta factura + items y **descuenta el stock** dentro de una **transacción atómica**; si algo falla, revierte todo.
+2. Bloquea las filas de los productos (`SELECT … FOR UPDATE`) y valida el **stock real** dentro de la transacción: dos ventas simultáneas del último artículo no pueden sobrevender.
+3. Calcula **subtotal, descuento, IVA (19%) y total** del lado del servidor (no confía en el cliente).
+4. Toma el consecutivo de la tabla `consecutivos` con un upsert atómico (`FAC-YYYYMM-00001`): no se repite aunque se anulen documentos, y borrar filas ya no hace retroceder la numeración.
+5. Inserta factura + items y **descuenta el stock**; si algo falla, la transacción revierte completa (incluido el consecutivo).
 
 ```json
 // Body de entrada
@@ -303,7 +305,9 @@ La estructura de respuesta es consistente:
     { "productoId": 1, "cantidad": 2 },
     { "productoId": 3, "cantidad": 1 }
   ],
-  "descuento": 5000
+  "descuento": 10,
+  "medioPago": "credito",
+  "plazoDias": 30
 }
 
 // Respuesta 201 Created
@@ -313,8 +317,9 @@ La estructura de respuesta es consistente:
   "factura": {
     "id": 1, "numero": "FAC-202608-00001", "fecha": "2026-08-07T05:19:04.000Z",
     "cliente": { "id": 1, "identificacion": "80.123.456-1", "nombre": "Constructora Moderna S.A.S" },
-    "subtotal": 420000, "iva": 79800, "descuento": 5000, "total": 494800,
-    "estado": "enviado", "cufe": null,
+    "subtotal": 420000, "iva": 79800, "descuento": 42000, "total": 494800,
+    "estado": "pendiente", "medioPago": "credito", "plazoDias": 30,
+    "fechaVencimiento": "2026-09-06", "cufe": null,
     "items": [
       { "id": 1, "codigo": "PROD001", "nombre": "Insumo Industrial X", "cantidad": 2,
         "precioUnitario": 85000, "iva": 32300, "subtotal": 170000 },
@@ -346,6 +351,30 @@ enviado | pendiente | procesando | rechazado | anulada
 | `q`       | string | Búsqueda por número de factura o cliente.      |
 | `pagina`  | number | Página de resultados.                          |
 | `limite`  | number | Registros por página (por defecto 20).         |
+
+**`POST /api/facturas/:id/nota-credito` — anulación.** Una factura no se borra nunca: se
+anula con una nota crédito, que es el rastro fiscal de la operación.
+
+```json
+// Body
+{ "motivo": "El cliente devolvio la mercancia" }   // mínimo 5 caracteres
+
+// Respuesta 201 Created
+{
+  "success": true,
+  "message": "Factura FAC-202610-00048 anulada con la nota credito NC-202610-00003.",
+  "nota": { "numero": "NC-202610-00003", "motivo": "El cliente devolvio la mercancia", "total": 53550 },
+  "factura": { "estado": "anulada" }
+}
+```
+
+En una sola transacción: bloquea la factura, rechaza la segunda anulación (409), toma el
+consecutivo `NC-YYYYMM-00001`, devuelve al inventario el stock de cada item, inserta la nota
+con el usuario que la emitió y marca la factura como `anulada`.
+
+`DELETE /api/facturas/:id` se conserva solo para responder **409** con la explicación, en
+lugar de dejar un 404 que invite a intentarlo por otra vía. Una factura anulada tampoco
+admite cambios de estado (`PUT /estado` responde 409).
 
 ### 5.5 Configuración — `/api/configuracion`
 
@@ -384,11 +413,29 @@ enviado | pendiente | procesando | rechazado | anulada
 
 ## 6. Usuarios de prueba (seed)
 
-| Rol       | NIT            | Contraseña      |
-| --------- | -------------- | --------------- |
-| admin     | `900.123.456-7`| `admin123`      |
-| vendedor  | `80.987.654-3` | `vendedor123`   |
-| contador  | `70.555.444-2` | `contador123`   |
+El seed **no incluye contraseñas escritas en el repositorio**. Cada cuenta toma
+su contraseña de la variable de entorno indicada o, si no está definida, se
+genera una aleatoria que se muestra **una sola vez** por consola.
+
+| Rol      | NIT             | Contraseña                                           |
+| -------- | --------------- | ---------------------------------------------------- |
+| admin    | `900.123.456-7` | `SEED_ADMIN_PASSWORD` o la generada por el seed       |
+| vendedor | `80.987.654-3`  | `SEED_VENDEDOR_PASSWORD` o la generada por el seed    |
+| contador | `70.555.444-2`  | `SEED_CONTADOR_PASSWORD` o la generada por el seed    |
+
+La política compartida con la versión Angular exige mínimo 8 caracteres con
+minúscula, mayúscula y dígito (si el valor del entorno no la cumple, el seed
+avisa y lo usa tal cual).
+
+Para consultar los usuarios o fijar una contraseña nueva sin volver a sembrar:
+
+```bash
+npm run usuario:clave -- --lista
+npm run usuario:clave -- --nit 900.123.456-7
+```
+
+> La base de datos es la misma que usa `FacturaExpress-V3`. Si se siembra desde
+> allí, las credenciales vigentes son las de `FacturaExpress-V3/backend/.env`.
 
 ---
 
@@ -438,7 +485,7 @@ La API queda disponible en `http://localhost:4000` (verificar en `http://localho
 # 1. Iniciar sesión y guardar el token
 TOKEN=$(curl -s -X POST http://localhost:4000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"nit":"900.123.456-7","password":"admin123"}' \
+  -d '{"nit":"900.123.456-7","password":"$SEED_ADMIN_PASSWORD"}' \
   | node -pe "JSON.parse(require('fs').readFileSync(0)).token")
 
 # 2. Listar clientes

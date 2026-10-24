@@ -122,6 +122,7 @@ const Errores = () => {
         <div className="filter-group">
           <select
             className="filter-select"
+            aria-label="Filtrar por tipo"
             value={tipoFilter}
             onChange={(e) => setTipoFilter(e.target.value)}
           >
@@ -134,6 +135,7 @@ const Errores = () => {
           </select>
           <select
             className="filter-select"
+            aria-label="Filtrar por estado"
             value={resueltoFilter}
             onChange={(e) => setResueltoFilter(e.target.value)}
           >

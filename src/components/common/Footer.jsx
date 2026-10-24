@@ -24,8 +24,8 @@ const Footer = () => {
       {/* Indicadores de estado del sistema */}
       <div className="footer-right">
         <div className="footer-status">
-          <span className="pulse-dot" />
-          <span>MOTOR FISCAL ACTIVO</span>
+          <span className="pulse-dot muted" />
+          <span>SIN MOTOR FISCAL</span>
         </div>
         <div className="footer-status">
           <span className="pulse-dot" />

@@ -154,19 +154,42 @@ function dibujarTablaItems(doc, items) {
  * @param {object} datos - { factura, items, empresa }.
  * @returns {Promise<Buffer>} PDF generado.
  */
+const ETIQUETAS_PAGO = {
+  efectivo: 'Efectivo',
+  tarjeta: 'Tarjeta',
+  transferencia: 'Transferencia',
+  credito: 'Credito',
+};
+
 async function generarPdfFactura({ factura, items = [], empresa = {} }) {
   return generarPdfBuffer((doc) => {
-    dibujarCabecera(doc, 'FACTURA ELECTRONICA', `${empresa.razonSocial || ''} - NIT ${empresa.nit || ''}`);
+    dibujarCabecera(doc, 'FACTURA DE VENTA', `${empresa.razonSocial || ''} - NIT ${empresa.nit || ''}`);
+
+    // Una factura anulada debe verse anulada en el papel
+    const anulada = factura.estado === 'anulada';
+    if (anulada) {
+      const y = doc.y;
+      doc.save();
+      doc.rect(40, y, doc.page.width - 80, 26).fill('#c0392b');
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(11)
+        .text('ANULADA — documento sin validez', 40, y + 7, { width: doc.page.width - 80, align: 'center' });
+      doc.restore();
+      doc.y = y + 34;
+    }
 
     doc.font('Helvetica-Bold').fontSize(12).fillColor(COLORES.dark)
       .text(`Factura #: ${factura.numero}`);
     doc.moveDown(0.3);
 
+    const medioPago = ETIQUETAS_PAGO[factura.medioPago] || 'Efectivo';
     const campos = [
       ['Fecha de emision', formatFecha(factura.fecha)],
       ['Cliente', `${factura.clienteNombre || factura.cliente?.nombre || 'N/A'} (${factura.clienteIdentificacion || factura.cliente?.identificacion || ''})`],
       ['Estado', factura.estado],
-      ['CUNE', factura.cufe || factura.cune || 'Pendiente'],
+      ['Medio de pago', factura.medioPago === 'credito' && factura.fechaVencimiento
+        ? `${medioPago} — vence ${formatFecha(factura.fechaVencimiento)}`
+        : medioPago],
+      ['Referencia interna', factura.cufe || 'Pendiente'],
     ];
 
     for (const [label, valor] of campos) {
@@ -196,7 +219,10 @@ async function generarPdfFactura({ factura, items = [], empresa = {} }) {
 
     doc.moveDown(2);
     doc.font('Helvetica').fontSize(8).fillColor(COLORES.muted)
-      .text('FacturaExpress - Facturacion Electronica DIAN. Documento generado electronicamente.', { align: 'center' });
+      .text(
+        'FacturaExpress — documento de demostracion, sin validez fiscal. No corresponde a una factura electronica validada por la DIAN.',
+        { align: 'center' }
+      );
   });
 }
 

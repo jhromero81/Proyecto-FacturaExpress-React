@@ -10,6 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
@@ -42,7 +43,15 @@ const dbConfig = {
  */
 async function ejecutarEsquema(connection) {
   const schemaPath = path.join(__dirname, '..', 'db', 'schema.sql');
-  const schema = fs.readFileSync(schemaPath, 'utf8');
+  const esquemaCrudo = fs.readFileSync(schemaPath, 'utf8');
+
+  // schema.sql trae el nombre de la base fijo. Si DB_NAME esta definido se
+  // sustituye, para que el seed y la API no puedan apuntar a bases distintas.
+  const nombreBase = (process.env.DB_NAME || 'facturaexpress_apirest').trim();
+  if (!/^[A-Za-z0-9_]+$/.test(nombreBase)) {
+    throw new Error(`DB_NAME invalido: "${nombreBase}"`);
+  }
+  const schema = esquemaCrudo.replace(/facturaexpress_apirest/g, nombreBase);
 
   const sentencias = schema
     .split(';')
@@ -90,7 +99,53 @@ async function seedEmpresa(connection) {
 }
 
 /**
+ * Genera una contrasena aleatoria que cumple la politica compartida
+ * (minimo 8 caracteres con minuscula, mayuscula y digito).
+ * @returns {string}
+ */
+function generarClaveAleatoria() {
+  const letras = 'abcdefghijkmnopqrstuvwxyz';
+  const mayusculas = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const digitos = '23456789';
+  // Sin '#': un valor sin comillas con # se trunca al releer el .env
+  const signos = '!@$%&*-_';
+  const elegir = (conjunto) => conjunto[crypto.randomInt(conjunto.length)];
+
+  const caracteres = [elegir(letras), elegir(mayusculas), elegir(digitos), elegir(signos)];
+  const todos = letras + mayusculas + digitos + signos;
+  while (caracteres.length < 16) caracteres.push(elegir(todos));
+
+  for (let i = caracteres.length - 1; i > 0; i -= 1) {
+    const j = crypto.randomInt(i + 1);
+    [caracteres[i], caracteres[j]] = [caracteres[j], caracteres[i]];
+  }
+  return caracteres.join('');
+}
+
+/**
+ * Resuelve la contrasena de un usuario del seed.
+ * Prioridad: variable de entorno -> aleatoria generada en el momento.
+ * @param {{nit: string, rol: string, passwordEnv: string}} usuario
+ * @returns {{clave: string, origen: 'entorno'|'generada'}}
+ */
+function resolverClave(usuario) {
+  const desdeEntorno = process.env[usuario.passwordEnv];
+  if (desdeEntorno && desdeEntorno.trim()) {
+    const clave = desdeEntorno.trim();
+    const debil = clave.length < 8 || !/[a-z]/.test(clave) || !/[A-Z]/.test(clave) || !/[0-9]/.test(clave);
+    if (debil) {
+      console.warn(
+        `[seed] Aviso: ${usuario.passwordEnv} no cumple la politica (min. 8 con minuscula, mayuscula y digito). Se usa tal cual.`
+      );
+    }
+    return { clave, origen: 'entorno' };
+  }
+  return { clave: generarClaveAleatoria(), origen: 'generada' };
+}
+
+/**
  * Pobla la tabla usuarios con contrasenas encriptadas.
+ * Si no hay contrasena en el entorno se genera una y se muestra UNA sola vez.
  */
 async function seedUsuarios(connection) {
   const [rows] = await connection.query('SELECT COUNT(*) AS total FROM usuarios');
@@ -99,15 +154,29 @@ async function seedUsuarios(connection) {
     return;
   }
 
+  const credenciales = [];
+
   for (const usuario of USUARIOS_DEFAULT) {
-    const passwordHash = await bcrypt.hash(usuario.password, 10);
+    const { clave, origen } = resolverClave(usuario);
+    const passwordHash = await bcrypt.hash(clave, 10);
     await connection.query(
       `INSERT INTO usuarios (nit, nombre, email, telefono, rol, password_hash)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [usuario.nit, usuario.nombre, usuario.email, usuario.telefono, usuario.rol, passwordHash]
     );
+    credenciales.push({ nit: usuario.nit, rol: usuario.rol, clave, origen });
   }
+
   console.log(`[seed] ${USUARIOS_DEFAULT.length} usuarios creados (contrasenas encriptadas).`);
+
+  const generadas = credenciales.filter((c) => c.origen === 'generada');
+  if (generadas.length > 0) {
+    console.log('\n[seed] Contrasenas generadas (se muestran una sola vez, guardelas ahora):');
+    for (const c of generadas) {
+      console.log(`  ${c.nit}  (${c.rol})  ->  ${c.clave}`);
+    }
+    console.log('[seed] Para fijar otras: npm run usuario:clave -- --nit <nit>\n');
+  }
 }
 
 /**
@@ -172,4 +241,10 @@ async function main() {
   }
 }
 
-main();
+// Solo se ejecuta al invocarlo directamente: las pruebas importan las
+// funciones puras (generacion y resolucion de contrasenas) sin tocar la BD.
+if (require.main === module) {
+  main();
+}
+
+module.exports = { generarClaveAleatoria, resolverClave };

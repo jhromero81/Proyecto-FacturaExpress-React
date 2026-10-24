@@ -81,7 +81,11 @@ CREATE TABLE IF NOT EXISTS facturas (
   iva                    DECIMAL(14,2) NOT NULL,
   descuento              DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   total                  DECIMAL(14,2) NOT NULL,
-  estado                 ENUM('pendiente','enviada','rechazada')
+  medio_pago             ENUM('efectivo','tarjeta','transferencia','credito')
+                         NOT NULL DEFAULT 'efectivo',
+  plazo_dias             INT UNSIGNED NULL,
+  fecha_vencimiento      DATE         NULL,
+  estado                 ENUM('pendiente','enviada','rechazada','anulada')
                          NOT NULL DEFAULT 'pendiente',
   cufe                   VARCHAR(150) NULL,
   firma_estado           VARCHAR(20)  NOT NULL DEFAULT 'pendiente',
@@ -120,6 +124,36 @@ CREATE TABLE IF NOT EXISTS factura_items (
 -- Datos de la empresa emisora y configuracion fiscal (DIAN).
 -- Contiene un unico registro (id = 1).
 -- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS consecutivos (
+  clave      VARCHAR(40) NOT NULL PRIMARY KEY,
+  ultimo     INT UNSIGNED NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+             ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ------------------------------------------------------------
+-- Tabla: notas_credito
+-- Anulacion de una factura ya emitida. Nunca se borra una
+-- factura: se emite una nota credito que la referencia y
+-- devuelve el stock al inventario.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS notas_credito (
+  id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  factura_id INT UNSIGNED NOT NULL,
+  numero     VARCHAR(30)  NOT NULL UNIQUE,
+  fecha      DATETIME     NOT NULL,
+  motivo     VARCHAR(200) NOT NULL,
+  subtotal   DECIMAL(14,2) NOT NULL,
+  iva        DECIMAL(14,2) NOT NULL,
+  total      DECIMAL(14,2) NOT NULL,
+  usuario_id INT UNSIGNED NULL,
+  created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_nc_factura
+    FOREIGN KEY (factura_id) REFERENCES facturas (id),
+  CONSTRAINT fk_nc_usuario
+    FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS empresa (
   id                     INT UNSIGNED PRIMARY KEY,
   nit                    VARCHAR(20)  NOT NULL,

@@ -1,8 +1,12 @@
 /**
  * TopBar.css
  * Estilos de la barra superior fija.
+ * Copiado de FacturaExpress-V3 layout.component.css (version Angular).
  */
 
+/* ============================
+   TOPBAR
+   ============================ */
 .topbar {
   position: fixed;
   top: 0;
@@ -31,7 +35,7 @@
   align-items: center;
   gap: 6px;
   font-size: 0.78rem;
-  color: var(--success);
+  color: var(--success-ink);
   font-weight: 600;
   letter-spacing: 0.3px;
 }
@@ -58,7 +62,7 @@
 
 .topbar-icon-btn:hover {
   background-color: rgba(26, 188, 156, 0.1);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .topbar-user {
@@ -78,5 +82,5 @@
 
 .topbar-user-icon {
   font-size: 28px;
-  color: var(--accent);
+  color: var(--accent-ink);
 }

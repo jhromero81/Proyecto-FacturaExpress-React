@@ -84,6 +84,7 @@ const Auditoria = () => {
         <div className="filter-group">
           <select
             className="filter-select"
+            aria-label="Filtrar por tabla"
             value={tablaFilter}
             onChange={(e) => setTablaFilter(e.target.value)}
           >
